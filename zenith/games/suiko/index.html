@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap');
+        body, html { margin: 0; padding: 0; background: transparent; font-family: 'Fredoka', sans-serif; overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        #suiko-layout { display: flex; gap: 20px; align-items: flex-start; }
+        
+        .game-box { position: relative; width: 400px; height: 600px; background: #fff5f5; border: 10px solid white; border-radius: 40px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); overflow: hidden; }
+        #shake-wrapper { width: 100%; height: 100%; position: relative; transition: transform 0.05s; }
+        
+        .danger-line { position: absolute; top: 100px; left: 0; width: 100%; height: 4px; background: repeating-linear-gradient(90deg, #ff5c7c, #ff5c7c 15px, transparent 15px, transparent 30px); opacity: 0.3; z-index: 10; pointer-events: none; }
+        
+        .sidebar { display: flex; flex-direction: column; gap: 15px; }
+        .side-card { background: white; padding: 15px; border-radius: 20px; text-align: center; border: 4px solid #ffcfcf; min-width: 120px; box-shadow: 0 8px 0px #ffcfcf; }
+        .side-val { font-size: 2.2rem; color: #ff5c7c; font-weight: bold; }
+        
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(10px); text-align: center; }
+        .btn { background: #ff5c7c; border: none; color: white; padding: 15px 35px; font-weight: bold; border-radius: 25px; cursor: pointer; font-family: 'Fredoka'; box-shadow: 0 5px 0 #d93858; font-size: 1.2rem; }
+        .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #d93858; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="suiko-layout">
+        <div class="game-box">
+            <div id="shake-wrapper">
+                <div id="suiko-container" style="width:100%; height:100%;"></div>
+                <div class="danger-line"></div>
+                
+                <div id="start-screen" class="overlay">
+                    <div style="font-size: 5rem; margin-bottom: 10px;">🍉</div>
+                    <h1 style="color:#ff5c7c; margin:0; font-size: 2.5rem;">ZENITH SUIKO</h1>
+                    <p style="color:#8e7dbe; margin-bottom: 25px; padding: 0 20px;">Unisci i frutti uguali per farli crescere!</p>
+                    <button class="btn" onclick="startGame()">START</button>
+                </div>
+
+                <div id="suiko-over" class="overlay hidden">
+                    <h1 style="color:#ff5c7c; font-size: 3rem; margin:0;">BOOM! 💥</h1>
+                    <div id="final-score" style="font-size: 2.2rem; margin-bottom: 25px; font-weight: bold; color: #8e7dbe;">0</div>
+                    <button class="btn" onclick="location.reload()">RIGIOCA ✨</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sidebar">
+            <div class="side-card">
+                <div style="color: #ff8fa3; font-size: 0.8rem; font-weight: bold;">SCORE</div>
+                <div id="su-score" class="side-val">0</div>
+            </div>
+            <div class="side-card">
+                <div style="color: #ff8fa3; font-size: 0.8rem; font-weight: bold;">NEXT</div>
+                <div id="su-next-emoji" style="font-size: 3rem;">🍒</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { Engine, Render, Runner, Bodies, Composite, Events, Body, Vector } = Matter;
+        let engine, render, runner, suScore = 0, nextIdx = 0, currentFruit = null, canDrop = false, gameActive = false;
+        let particles = [];
+        const shakeWrapper = document.getElementById('shake-wrapper');
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playPop(freq, type = 'sine', decay = 0.2, vol = 0.2) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(freq/2, audioCtx.currentTime + decay);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + decay);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + decay);
+        }
+
+        const FRUITS = [
+            { r: 20, s: 2, e: '🍒' }, { r: 28, s: 4, e: '🍓' }, { r: 36, s: 8, e: '🍇' }, 
+            { r: 46, s: 16, e: '🍊' }, { r: 56, s: 32, e: '🍅' }, { r: 68, s: 64, e: '🍎' },
+            { r: 80, s: 128, e: '🍐' }, { r: 95, s: 256, e: '🍑' }, { r: 110, s: 512, e: '🍍' }, 
+            { r: 130, s: 1024, e: '🍈' }, { r: 155, s: 2048, e: '🍉' }
+        ];
+
+        function initMatter() {
+            engine = Engine.create();
+            render = Render.create({
+                element: document.getElementById('suiko-container'),
+                engine: engine,
+                options: { width: 400, height: 600, wireframes: false, background: 'transparent' }
+            });
+
+            Composite.add(engine.world, [
+                Bodies.rectangle(200, 610, 400, 20, { isStatic: true, friction: 0.5 }),
+                Bodies.rectangle(-10, 300, 20, 600, { isStatic: true }),
+                Bodies.rectangle(410, 300, 20, 600, { isStatic: true })
+            ]);
+
+            Render.run(render);
+            runner = Runner.create();
+            Runner.run(runner, engine);
+            
+            Events.on(engine, 'collisionStart', (event) => {
+                event.pairs.forEach(pair => {
+                    const bA = pair.bodyA; const bB = pair.bodyB;
+                    if (bA.label === "fruit" && bB.label === "fruit" && bA.lvl === bB.lvl && !bA.dead && !bB.dead) {
+                        bA.dead = bB.dead = true;
+                        const nx = (bA.position.x + bB.position.x) / 2;
+                        const ny = (bA.position.y + bB.position.y) / 2;
+                        const newLvl = bA.lvl + 1;
+                        
+                        softShake();
+                        playPop(150 + (newLvl * 40), 'sine', 0.5, 0.3);
+
+                        Composite.remove(engine.world, [bA, bB]);
+                        
+                        if (newLvl < FRUITS.length) {
+                            const next = Bodies.circle(nx, ny, FRUITS[newLvl].r, { label: "fruit", render: { visible: false } });
+                            next.lvl = newLvl; next.isDropped = true;
+                            Composite.add(engine.world, next);
+                            suScore += FRUITS[newLvl].s;
+                            document.getElementById('su-score').innerText = suScore;
+                            createStars(nx, ny);
+                        }
+                    }
+                });
+            });
+
+            Events.on(render, 'afterRender', () => {
+                const ctx = render.context;
+                Composite.allBodies(engine.world).forEach(body => {
+                    if (body.label === "fruit" && !body.dead) {
+                        const { x, y } = body.position;
+                        ctx.save(); ctx.translate(x, y); ctx.rotate(body.angle);
+                        ctx.font = `${body.circleRadius * 2.1}px Arial`;
+                        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                        ctx.fillText(FRUITS[body.lvl].e, 0, 0); ctx.restore();
+
+                        if (body.isDropped && y < 100 && Body.getSpeed(body) < 0.4 && gameActive) {
+                            if (!body.overTime) body.overTime = Date.now();
+                            if (Date.now() - body.overTime > 2000) {
+                                gameActive = false;
+                                document.getElementById('suiko-over').classList.remove('hidden');
+                                document.getElementById('final-score').innerText = suScore + " PUNTI";
+                            }
+                        } else { body.overTime = null; }
+                    }
+                });
+
+                particles.forEach((p, i) => {
+                    p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.alpha -= 0.015; p.rot += 0.1;
+                    if(p.alpha <= 0) { particles.splice(i, 1); return; }
+                    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+                    ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+                    ctx.shadowBlur = 10; ctx.shadowColor = "white";
+                    drawStar(ctx, 0, 0, 5, p.size, p.size/2); ctx.fill();
+                    ctx.restore();
+                });
+            });
+        }
+
+        function startGame() {
+            document.getElementById('start-screen').classList.add('hidden');
+            initMatter();
+            gameActive = true;
+            spawnFruit();
+        }
+
+        function createStars(x, y) {
+            for(let i=0; i<10; i++) {
+                particles.push({
+                    x, y, vx: (Math.random()-0.5)*14, vy: (Math.random()-0.5)*14 - 2,
+                    alpha: 1, size: 6 + Math.random()*8, rot: Math.random()*Math.PI
+                });
+            }
+        }
+
+        function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+            let rot = Math.PI / 2 * 3; let x = cx; let y = cy; let step = Math.PI / spikes;
+            ctx.beginPath(); ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius; y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y); rot += step;
+                x = cx + Math.cos(rot) * innerRadius; y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y); rot += step;
+            }
+            ctx.closePath();
+        }
+
+        function softShake() {
+            const intensity = 4;
+            shakeWrapper.style.transform = `translate(${(Math.random()-0.5)*intensity}px, ${(Math.random()-0.5)*intensity}px)`;
+            setTimeout(() => shakeWrapper.style.transform = 'translate(0,0)', 60);
+        }
+
+        function spawnFruit() {
+            if(!gameActive) return;
+            const idx = nextIdx;
+            nextIdx = Math.floor(Math.random() * 4);
+            document.getElementById('su-next-emoji').innerText = FRUITS[nextIdx].e;
+            currentFruit = Bodies.circle(200, 50, FRUITS[idx].r, { isStatic: true, label: "fruit", render: { visible: false } });
+            currentFruit.lvl = idx; currentFruit.isDropped = false;
+            Composite.add(engine.world, currentFruit);
+            canDrop = true;
+        }
+
+        window.addEventListener('mousedown', () => {
+            if (canDrop && currentFruit && gameActive) {
+                playPop(500, 'sine', 0.1, 0.15);
+                canDrop = false; currentFruit.isDropped = true;
+                Body.setStatic(currentFruit, false);
+                setTimeout(spawnFruit, 800);
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (canDrop && currentFruit && gameActive) {
+                const rect = document.getElementById('suiko-container').getBoundingClientRect();
+                let x = e.clientX - rect.left;
+                x = Math.max(FRUITS[currentFruit.lvl].r, Math.min(400 - FRUITS[currentFruit.lvl].r, x));
+                Body.setPosition(currentFruit, { x, y: 50 });
+            }
+        });
+    </script>
+</body>
+</html>
