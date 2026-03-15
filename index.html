@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GAEMOJI - Arcade Center</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Sigmar&display=swap');
+        
+        :root {
+            --bg: #fff5f5;
+            --primary: #ff5c7c;
+            --secondary: #8e7dbe;
+            --accent: #ffcfcf;
+        }
+
+        * { box-sizing: border-box; }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg);
+            color: #444; font-family: 'Fredoka', sans-serif;
+            overflow: hidden; display: flex; justify-content: center; align-items: center;
+        }
+
+        /* LOGO MASTER */
+        #brand-logo {
+            position: absolute; top: 20px; left: 20px;
+            font-family: 'Sigmar', cursive; font-size: 3.5rem; color: white;
+            text-shadow: 4px 4px 0px var(--primary);
+            transform: rotate(-5deg); z-index: 3000;
+            cursor: pointer; transition: 0.2s;
+        }
+        #brand-logo:hover { transform: rotate(-2deg) scale(1.1); }
+
+        /* BOX NOME */
+        #name-box {
+            position: absolute; bottom: 20px; left: 20px;
+            background: white; padding: 10px 15px; border-radius: 20px;
+            border: 4px solid var(--accent); display: flex; align-items: center;
+            gap: 10px; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        #name-box label { font-size: 0.8rem; font-weight: bold; color: var(--primary); }
+        #name-box input {
+            border: none; background: #fff5f5; padding: 5px 10px;
+            border-radius: 10px; font-family: 'Fredoka'; font-weight: bold;
+            color: var(--secondary); width: 120px; outline: none;
+        }
+
+        .page {
+            position: absolute; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 20px;
+        }
+        .hidden { opacity: 0; pointer-events: none; transform: translateY(20px); }
+
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { font-size: 3.8rem; color: var(--primary); margin: 0; text-transform: uppercase; letter-spacing: -2px; }
+        .welcome { color: var(--secondary); font-size: 1.5rem; margin-top: 5px; }
+
+        /* Griglia Giochi */
+        .menu-container { 
+            display: grid; grid-template-columns: repeat(4, 1fr); 
+            gap: 20px; max-width: 1100px; width: 100%; padding: 10px;
+        }
+
+        .menu-card {
+            background: white; border-radius: 40px; padding: 25px;
+            text-align: center; border: 8px solid white;
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .menu-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(255, 92, 124, 0.15); }
+        .card-emoji { font-size: 4rem; margin-bottom: 5px; }
+        .badge { color: #aaa; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
+        .menu-card h3 { margin: 5px 0 15px 0; color: var(--primary); font-size: 1.4rem; letter-spacing: 1px; }
+
+        /* Colori bordi card */
+        .border-yellow { border-color: #ffeb3b; }
+        .border-menta { border-color: #c3fcf2; }
+        .border-pink { border-color: #ffcfcf; }
+        .border-green { border-color: #d1f7c4; }
+        .border-purple { border-color: #e0c3fc; }
+        .border-orange { border-color: #ffd8a8; }
+        .border-wave { border-color: #4a2c7a; } /* Viola Scuro per Wave Dash */
+
+        .play-btn {
+            background: var(--primary); color: white; padding: 10px 30px;
+            border-radius: 20px; font-weight: bold; box-shadow: 0 5px 0 #d93858;
+            font-size: 0.9rem;
+        }
+
+        #game-view { width: 100%; height: 100%; background: var(--bg); }
+        iframe { width: 100%; height: 100%; border: none; }
+
+        footer { position: absolute; bottom: 15px; color: var(--accent); font-weight: bold; font-size: 0.7rem; letter-spacing: 3px; }
+
+        @media (max-width: 900px) {
+            .menu-container { grid-template-columns: repeat(2, 1fr); overflow-y: auto; max-height: 70vh; }
+            h1 { font-size: 2.8rem; }
+            body { overflow: auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="brand-logo" onclick="goHome()">ZENITH</div>
+
+    <div id="name-box">
+        <label>NOME:</label>
+        <input type="text" id="user-name-input" placeholder="..." maxlength="12">
+    </div>
+
+    <div id="main-menu" class="page">
+        <header>
+            <h1>GAEMOJI</h1>
+            <div class="welcome">Ciao, <strong id="display-name">L E G E N D S</strong></div>
+        </header>
+
+        <div class="menu-container">
+            <div class="menu-card border-wave" onclick="launchGame('wave-dash')">
+                <div class="card-emoji">🌊</div>
+                <div class="badge">Ritmo</div>
+                <h3>WAVE DASH</h3>
+                <div class="play-btn">GIOCA</div>
+            </div>
+
+            <div class="menu-card border-yellow" onclick="launchGame('ninja')">
+                <div class="card-emoji">🥷</div>
+                <div class="badge">Azione</div>
+                <h3>NINJA SLICE</h3>
+                <div class="play-btn">GIOCA</div>
+            </div>
+
+            <div class="menu-card border-menta" onclick="launchGame('racers')">
+                <div class="card-emoji">🏎️</div>
+                <div class="badge">2 Player</div>
+                <h3>RACERS</h3>
+                <div class="play-btn">GIOCA</div>
+            </div>
+
+            <div class="menu-card border-pink" onclick="launchGame('suiko')">
+                <div class="card-emoji">🍉</div>
+                <div class="badge">Popolare</div>
+                <h3>SUIKO</h3>
+                <div class="play-btn">GIOCA</div>
+            </div>
+
+            <div class="menu-card border-green" onclick="launchGame('snake')">
+                <div class="card-emoji">🐍</div>
+                <div class="badge">Classico</div>
+                <h3>SNAKE</h3>
+                <div class="play-btn">GIOCA</div>
+            </div>
+
+            <div class="menu-card border-purple" onclick="launchGame('tetris')">
+                <div class="card-emoji">🧱</div>
+                <div class="badge">Puzzle</div>
+                <h3>TETRIS</h3>
+                <div class="play-btn">GIOCA</div>
+            </div>
+
+            <div class="menu-card border-orange" onclick="launchGame('talpa')">
+                <div class="card-emoji">🐹</div>
+                <div class="badge">Bonus</div>
+                <h3>TALPA HIT</h3>
+                <div class="play-btn">GIOCA</div>
+            </div>
+        </div>
+
+        <footer>PRODOTTO DA ZENITH</footer>
+    </div>
+
+    <div id="game-view" class="page hidden">
+        <iframe id="game-frame" src=""></iframe>
+    </div>
+
+    <script>
+        const nameInput = document.getElementById('user-name-input');
+        const displayName = document.getElementById('display-name');
+
+        const savedName = localStorage.getItem('zenith_user_name');
+        if (savedName) {
+            nameInput.value = savedName;
+            displayName.innerText = savedName;
+        }
+
+        nameInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            displayName.innerText = val || "L E G E N D S";
+            localStorage.setItem('zenith_user_name', val);
+        });
+
+        function launchGame(id) {
+            // Carica il gioco dalla cartella games/id/index.html
+            document.getElementById('game-frame').src = `games/${id}/index.html`;
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('name-box').classList.add('hidden');
+            document.getElementById('game-view').classList.remove('hidden');
+        }
+
+        function goHome() {
+            document.getElementById('game-frame').src = "";
+            document.getElementById('game-view').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+            document.getElementById('name-box').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

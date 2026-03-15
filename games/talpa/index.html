@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap');
+        
+        body, html { margin: 0; padding: 0; background: transparent; font-family: 'Fredoka', sans-serif; overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        
+        #game-layout { display: flex; gap: 20px; align-items: flex-start; position: relative; }
+
+        .game-box { 
+            position: relative; width: 420px; height: 500px; 
+            background: #fff5f5; border: 10px solid white; border-radius: 40px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1); overflow: hidden;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text y="24" font-size="24">🔨</text></svg>'), auto;
+        }
+        
+        /* HUD Arcade */
+        .hud-bar {
+            position: absolute; top: 0; left: 0; width: 100%; height: 60px;
+            background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(5px);
+            display: flex; justify-content: flex-end; align-items: center;
+            padding: 0 25px; box-sizing: border-box; z-index: 10;
+        }
+
+        .mole-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 20px; padding: 80px 30px 30px 30px; 
+            width: 100%; height: 100%; box-sizing: border-box;
+        }
+        
+        .hole {
+            aspect-ratio: 1 / 1; background: #f0ced8; border-radius: 50%; 
+            box-shadow: inset 0 8px 12px rgba(0,0,0,0.15);
+            display: flex; justify-content: center; align-items: center;
+            position: relative; overflow: hidden;
+        }
+
+        .mole {
+            font-size: 4.5rem; position: absolute; bottom: -100%;
+            transition: bottom 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            user-select: none;
+        }
+        
+        .mole.up { bottom: 0px; }
+        .mole.fake { bottom: -30%; }
+
+        .sidebar { display: flex; flex-direction: column; gap: 15px; }
+        .side-card { 
+            background: white; padding: 15px; border-radius: 20px; text-align: center; 
+            border: 4px solid #ffcfcf; min-width: 120px; box-shadow: 0 8px 0px #ffcfcf;
+        }
+        .side-val { font-size: 2.2rem; color: #ff5c7c; font-weight: bold; }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        @keyframes shake { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.92); } }
+        .hit-shake { animation: shake 0.15s ease-in-out; }
+
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 300; backdrop-filter: blur(10px); }
+        .btn { background: #ff5c7c; border: none; color: white; padding: 15px 35px; font-weight: bold; border-radius: 25px; cursor: pointer; font-family: 'Fredoka'; box-shadow: 0 5px 0 #d93858; font-size: 1.2rem; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="game-layout">
+        <div class="game-box">
+            <div class="hud-bar">
+                <div style="font-size: 0.9rem; color: #ff5c7c; font-weight: 700; opacity: 0.6;">ARCADE HIT</div>
+            </div>
+            
+            <canvas id="juice-canvas" width="420" height="500" style="position:absolute; top:0; left:0; pointer-events:none; z-index:50;"></canvas>
+            
+            <div class="mole-grid" id="grid"></div>
+            
+            <div id="over" class="overlay hidden">
+                <h1 style="color:#ff5c7c; font-size: 3rem; margin:0;">BOOM! 💥</h1>
+                <div id="final-score" style="font-size: 2.2rem; margin-bottom: 25px; font-weight: bold; color: #8e7dbe;">0</div>
+                <button class="btn" onclick="startGame()">RIGIOCA (Space) 🔨</button>
+            </div>
+
+            <div id="start-screen" class="overlay">
+                <div style="font-size: 5rem; margin-bottom: 10px;">🐹</div>
+                <h1 style="color:#ff5c7c; margin:0;">ZENITH MOLE</h1>
+                <p style="color:#8e7dbe; margin-bottom: 25px;">Acchiappa più talpe che puoi!</p>
+                <button class="btn" onclick="startGame()">START</button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="side-card">
+                <div style="color: #ff8fa3; font-size: 0.8rem; font-weight: bold;">SCORE</div>
+                <div id="sc" class="side-val">0</div>
+            </div>
+            <div class="side-card">
+                <div style="color: #ff8fa3; font-size: 0.8rem; font-weight: bold;">TIME</div>
+                <div id="tm" class="side-val">30</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const canvas = document.getElementById('juice-canvas');
+        const ctx = canvas.getContext('2d');
+        let score = 0, gameActive = false, timeLeft = 30, particles = [], timer;
+
+        for(let i=0; i<9; i++) {
+            grid.innerHTML += `<div class="hole" id="h${i}"><div class="mole" onclick="whack(this, ${i})">🐹</div></div>`;
+        }
+        const moles = document.querySelectorAll('.mole');
+        const holes = document.querySelectorAll('.hole');
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playPop(f, d=0.1, vol=0.2) {
+            if(audioCtx.state==='suspended') audioCtx.resume();
+            const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+            o.type='sine'; o.frequency.setValueAtTime(f, audioCtx.currentTime);
+            o.frequency.exponentialRampToValueAtTime(f/2, audioCtx.currentTime+d);
+            g.gain.setValueAtTime(vol, audioCtx.currentTime); g.gain.linearRampToValueAtTime(0, audioCtx.currentTime+d);
+            o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+d);
+        }
+
+        function createStars(x, y) {
+            for(let i=0; i<12; i++) {
+                particles.push({
+                    x, y, vx: (Math.random()-0.5)*18, vy: (Math.random()-0.5)*18 - 4,
+                    alpha: 1, size: 5+Math.random()*10, rot: Math.random()*Math.PI,
+                    color: i%2===0 ? '#ff5c7c' : '#ffffff'
+                });
+            }
+        }
+
+        function juiceLoop() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            particles.forEach((p, i) => {
+                p.x+=p.vx; p.y+=p.vy; p.vy+=0.3; p.alpha-=0.02; p.rot+=0.15;
+                if(p.alpha<=0) { particles.splice(i,1); return; }
+                ctx.save(); ctx.globalAlpha = p.alpha; ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+                ctx.fillStyle = p.color; ctx.shadowBlur = 10; ctx.shadowColor = p.color;
+                let r=p.size, step=Math.PI/5; ctx.beginPath();
+                for(let j=0; j<10; j++){ let rad = (j%2===0)?r:r/2; ctx.lineTo(Math.cos(j*step)*rad, Math.sin(j*step)*rad); }
+                ctx.closePath(); ctx.fill(); ctx.restore();
+            });
+            requestAnimationFrame(juiceLoop);
+        }
+
+        function whack(mole, idx) {
+            if(!gameActive || !mole.classList.contains('up')) return;
+            score++; document.getElementById('sc').innerText = score;
+            playPop(500 + (score*2), 0.1, 0.3);
+            const rect = mole.getBoundingClientRect();
+            const box = document.querySelector('.game-box').getBoundingClientRect();
+            createStars(rect.left - box.left + rect.width/2, rect.top - box.top + rect.height/2);
+            holes[idx].classList.add('hit-shake');
+            setTimeout(() => holes[idx].classList.remove('hit-shake'), 150);
+            mole.classList.remove('up');
+        }
+
+        function peep() {
+            if(!gameActive) return;
+            const idx = Math.floor(Math.random()*9);
+            const mole = moles[idx];
+            if(mole.classList.contains('up') || mole.classList.contains('fake')) return peep();
+            const isFake = Math.random() > 0.8; 
+            if(isFake) {
+                mole.classList.add('fake');
+                setTimeout(() => { mole.classList.remove('fake'); if(gameActive) setTimeout(peep, 200); }, 250);
+            } else {
+                mole.classList.add('up');
+                const timeUp = Math.max(350, 900 - (score * 12));
+                setTimeout(() => { mole.classList.remove('up'); if(gameActive) setTimeout(peep, 250); }, timeUp);
+            }
+        }
+
+        function startGame() {
+            gameActive = true; score = 0; timeLeft = 30;
+            document.querySelectorAll('.overlay').forEach(o => o.classList.add('hidden'));
+            document.getElementById('sc').innerText = "0";
+            document.getElementById('tm').innerText = timeLeft;
+            peep(); setTimeout(peep, 500);
+            juiceLoop();
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('tm').innerText = timeLeft;
+                if(timeLeft <= 0) {
+                    gameActive = false; clearInterval(timer);
+                    document.getElementById('over').classList.remove('hidden');
+                    document.getElementById('final-score').innerText = score + " TALPE";
+                }
+            }, 1000);
+        }
+
+        window.onkeydown = e => { if(e.code==='Space' && !gameActive) startGame(); };
+    </script>
+</body>
+</html>
