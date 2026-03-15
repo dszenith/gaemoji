@@ -14,8 +14,7 @@
             --accent: #ffcfcf;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
+        * { box-sizing: border-box; }
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: var(--bg);
@@ -23,7 +22,7 @@
             overflow: hidden; display: flex; justify-content: center; align-items: center;
         }
 
-        /* LOGO MASTER - RIPRISTINATO */
+        /* LOGO MASTER */
         #brand-logo {
             position: absolute; top: 20px; left: 20px;
             font-family: 'Sigmar', cursive; font-size: 3.5rem; color: white;
@@ -68,53 +67,41 @@
         .menu-card {
             background: white; border-radius: 40px; padding: 25px;
             text-align: center; border: 8px solid white;
-            cursor: pointer; transition: all 0.3s;
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+            position: relative; overflow: hidden;
             display: flex; flex-direction: column; align-items: center;
         }
-        .menu-card:hover { transform: translateY(-10px); }
 
+        .menu-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(255, 92, 124, 0.15); }
         .card-emoji { font-size: 4rem; margin-bottom: 5px; }
         .badge { color: #aaa; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
-        .menu-card h3 { margin: 5px 0 15px 0; color: var(--primary); font-size: 1.4rem; }
+        .menu-card h3 { margin: 5px 0 15px 0; color: var(--primary); font-size: 1.4rem; letter-spacing: 1px; }
 
-        /* Colori bordi */
-        .border-purple { border-color: #e0c3fc; }
+        /* Colori bordi card */
         .border-yellow { border-color: #ffeb3b; }
         .border-menta { border-color: #c3fcf2; }
         .border-pink { border-color: #ffcfcf; }
         .border-green { border-color: #d1f7c4; }
+        .border-purple { border-color: #e0c3fc; }
         .border-orange { border-color: #ffd8a8; }
+        .border-wave { border-color: #4a2c7a; } /* Viola Scuro per Wave Dash */
 
         .play-btn {
             background: var(--primary); color: white; padding: 10px 30px;
             border-radius: 20px; font-weight: bold; box-shadow: 0 5px 0 #d93858;
+            font-size: 0.9rem;
         }
 
-        /* VIEWPORT GIOCO */
-        #game-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 4000; }
+        #game-view { width: 100%; height: 100%; background: var(--bg); }
         iframe { width: 100%; height: 100%; border: none; }
-
-        /* CONTROLLI MOBILE */
-        #mobile-ctrl {
-            position: fixed; bottom: 40px; left: 0; width: 100%;
-            display: flex; justify-content: space-between; padding: 0 40px;
-            z-index: 5000; pointer-events: none;
-        }
-        .joy-btn {
-            width: 80px; height: 80px; background: rgba(255,255,255,0.2);
-            backdrop-filter: blur(8px); border: 3px solid white; border-radius: 50%;
-            color: white; font-size: 1.5rem; display: flex; align-items: center; 
-            justify-content: center; pointer-events: auto;
-        }
-        .dpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 
         footer { position: absolute; bottom: 15px; color: var(--accent); font-weight: bold; font-size: 0.7rem; letter-spacing: 3px; }
 
         @media (max-width: 900px) {
-            .menu-container { grid-template-columns: repeat(2, 1fr); overflow-y: auto; max-height: 60vh; }
+            .menu-container { grid-template-columns: repeat(2, 1fr); overflow-y: auto; max-height: 70vh; }
             h1 { font-size: 2.8rem; }
-            #brand-logo { font-size: 2.5rem; }
+            body { overflow: auto; }
         }
     </style>
 </head>
@@ -134,52 +121,72 @@
         </header>
 
         <div class="menu-container">
-            <div class="menu-card border-purple" onclick="launchGame('wave-dash')">
-                <div class="card-emoji">🌊</div><div class="badge">Ritmo</div><h3>WAVE DASH</h3><div class="play-btn">GIOCA</div>
+            <div class="menu-card border-wave" onclick="launchGame('wave-dash')">
+                <div class="card-emoji">🌊</div>
+                <div class="badge">Ritmo</div>
+                <h3>WAVE DASH</h3>
+                <div class="play-btn">GIOCA</div>
             </div>
+
             <div class="menu-card border-yellow" onclick="launchGame('ninja')">
-                <div class="card-emoji">🥷</div><div class="badge">Azione</div><h3>NINJA SLICE</h3><div class="play-btn">GIOCA</div>
+                <div class="card-emoji">🥷</div>
+                <div class="badge">Azione</div>
+                <h3>NINJA SLICE</h3>
+                <div class="play-btn">GIOCA</div>
             </div>
+
             <div class="menu-card border-menta" onclick="launchGame('racers')">
-                <div class="card-emoji">🏎️</div><div class="badge">2 Player</div><h3>RACERS</h3><div class="play-btn">GIOCA</div>
+                <div class="card-emoji">🏎️</div>
+                <div class="badge">2 Player</div>
+                <h3>RACERS</h3>
+                <div class="play-btn">GIOCA</div>
             </div>
+
             <div class="menu-card border-pink" onclick="launchGame('suiko')">
-                <div class="card-emoji">🍉</div><div class="badge">Popolare</div><h3>SUIKO</h3><div class="play-btn">GIOCA</div>
+                <div class="card-emoji">🍉</div>
+                <div class="badge">Popolare</div>
+                <h3>SUIKO</h3>
+                <div class="play-btn">GIOCA</div>
             </div>
+
             <div class="menu-card border-green" onclick="launchGame('snake')">
-                <div class="card-emoji">🐍</div><div class="badge">Classico</div><h3>SNAKE</h3><div class="play-btn">GIOCA</div>
+                <div class="card-emoji">🐍</div>
+                <div class="badge">Classico</div>
+                <h3>SNAKE</h3>
+                <div class="play-btn">GIOCA</div>
             </div>
+
             <div class="menu-card border-purple" onclick="launchGame('tetris')">
-                <div class="card-emoji">🧱</div><div class="badge">Puzzle</div><h3>TETRIS</h3><div class="play-btn">GIOCA</div>
+                <div class="card-emoji">🧱</div>
+                <div class="badge">Puzzle</div>
+                <h3>TETRIS</h3>
+                <div class="play-btn">GIOCA</div>
             </div>
+
             <div class="menu-card border-orange" onclick="launchGame('talpa')">
-                <div class="card-emoji">🐹</div><div class="badge">Bonus</div><h3>TALPA HIT</h3><div class="play-btn">GIOCA</div>
+                <div class="card-emoji">🐹</div>
+                <div class="badge">Bonus</div>
+                <h3>TALPA HIT</h3>
+                <div class="play-btn">GIOCA</div>
             </div>
         </div>
 
         <footer>PRODOTTO DA ZENITH</footer>
     </div>
 
-    <div id="game-view" class="hidden">
+    <div id="game-view" class="page hidden">
         <iframe id="game-frame" src=""></iframe>
-        <div id="mobile-ctrl" class="hidden">
-            <div class="dpad" id="dpad-group">
-                <div></div><div class="joy-btn" ontouchstart="sendKey(38,'ArrowUp')">▲</div><div></div>
-                <div class="joy-btn" ontouchstart="sendKey(37,'ArrowLeft')">◀</div><div></div><div class="joy-btn" ontouchstart="sendKey(39,'ArrowRight')">▶</div>
-                <div></div><div class="joy-btn" ontouchstart="sendKey(40,'ArrowDown')">▼</div><div></div>
-            </div>
-            <div class="joy-btn" id="action-btn" style="width:100px; border-radius:20px;" ontouchstart="sendKey(32,' ')">ACTION</div>
-        </div>
     </div>
 
     <script>
         const nameInput = document.getElementById('user-name-input');
         const displayName = document.getElementById('display-name');
-        const gameFrame = document.getElementById('game-frame');
-        const mobileCtrl = document.getElementById('mobile-ctrl');
 
-        nameInput.value = localStorage.getItem('zenith_user_name') || "";
-        displayName.innerText = nameInput.value || "L E G E N D S";
+        const savedName = localStorage.getItem('zenith_user_name');
+        if (savedName) {
+            nameInput.value = savedName;
+            displayName.innerText = savedName;
+        }
 
         nameInput.addEventListener('input', (e) => {
             const val = e.target.value;
@@ -188,29 +195,18 @@
         });
 
         function launchGame(id) {
-            gameFrame.src = `games/${id}/index.html`;
+            // Carica il gioco dalla cartella games/id/index.html
+            document.getElementById('game-frame').src = `games/${id}/index.html`;
             document.getElementById('main-menu').classList.add('hidden');
             document.getElementById('name-box').classList.add('hidden');
             document.getElementById('game-view').classList.remove('hidden');
-
-            if(window.innerWidth < 1024) {
-                mobileCtrl.classList.remove('hidden');
-                document.getElementById('dpad-group').style.display = (id === 'wave-dash' || id === 'ninja') ? 'none' : 'grid';
-            }
         }
 
         function goHome() {
-            gameFrame.src = "";
+            document.getElementById('game-frame').src = "";
             document.getElementById('game-view').classList.add('hidden');
-            mobileCtrl.classList.add('hidden');
             document.getElementById('main-menu').classList.remove('hidden');
             document.getElementById('name-box').classList.remove('hidden');
-        }
-
-        function sendKey(code, key) {
-            const win = gameFrame.contentWindow;
-            win.dispatchEvent(new KeyboardEvent('keydown', { keyCode: code, key: key }));
-            setTimeout(() => win.dispatchEvent(new KeyboardEvent('keyup', { keyCode: code, key: key })), 100);
         }
     </script>
 </body>
