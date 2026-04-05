@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ZENITH BUBBLE SHOOTER PRO</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Sigmar&display=swap');
+        :root { 
+            --bg: #fff5f5; 
+            --primary: #ff5c7c; 
+            --secondary: #8e7dbe; 
+            --accent: #ffcfcf;
+            --glass: rgba(255, 255, 255, 0.8);
+        }
+        
+        body, html { 
+            margin: 0; padding: 0; 
+            background: linear-gradient(135deg, #ffe9e9 0%, #f3e8ff 100%); 
+            font-family: 'Fredoka', sans-serif; 
+            overflow: hidden; height: 100vh; 
+            display: flex; justify-content: center; align-items: center; 
+        }
+
+        #layout { display: flex; gap: 30px; align-items: center; position: relative; z-index: 10; }
+
+        /* Contenitore Gioco con Effetto Mobile */
+        .game-box { 
+            position: relative; 
+            width: 420px; height: 680px; 
+            background: white; 
+            border: 12px solid white; 
+            border-radius: 50px; 
+            box-shadow: 0 30px 60px rgba(255, 92, 124, 0.2); 
+            overflow: hidden;
+            transition: transform 0.1s ease-out;
+        }
+
+        canvas { 
+            background: radial-gradient(circle at center, #ffffff 0%, #fff0f3 100%); 
+            display: block; 
+            cursor: crosshair; 
+        }
+
+        /* Sidebar Professionale */
+        .sidebar { display: flex; flex-direction: column; gap: 20px; }
+        .side-card { 
+            background: var(--glass); 
+            backdrop-filter: blur(10px);
+            padding: 20px; 
+            border-radius: 25px; 
+            text-align: center; 
+            border: 2px solid white; 
+            min-width: 140px; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        }
+        .side-label { color: var(--secondary); font-size: 0.9rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .side-val { font-size: 2.5rem; color: var(--primary); font-weight: 700; text-shadow: 2px 2px 0px rgba(0,0,0,0.05); }
+
+        /* Overlays */
+        .overlay { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255, 255, 255, 0.85); 
+            display: flex; flex-direction: column; justify-content: center; 
+            align-items: center; z-index: 100; backdrop-filter: blur(12px); 
+            text-align: center; 
+        }
+        
+        .title { font-family: 'Sigmar'; color: var(--primary); font-size: 3rem; margin: 0; transform: rotate(-3deg); text-shadow: 4px 4px 0 white; }
+
+        .btn { 
+            background: var(--primary); border: none; color: white; 
+            padding: 18px 40px; font-weight: bold; border-radius: 30px; 
+            cursor: pointer; font-family: 'Fredoka'; 
+            box-shadow: 0 8px 0 #d93858; font-size: 1.3rem; 
+            transition: all 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 0 #d93858; }
+        .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #d93858; }
+
+        .hidden { display: none !important; }
+
+        /* Background Deco */
+        .blob { position: absolute; width: 500px; height: 500px; background: var(--accent); border-radius: 50%; filter: blur(80px); opacity: 0.4; z-index: 1; }
+    </style>
+</head>
+<body>
+
+<div class="blob" style="top: -100px; left: -100px;"></div>
+<div class="blob" style="bottom: -100px; right: -100px; background: #e8dfff;"></div>
+
+<div id="layout">
+    <div class="game-box" id="shake-target">
+        <canvas id="gameCanvas" width="420" height="680"></canvas>
+        
+        <div id="start-screen" class="overlay">
+            <h1 class="title">ZENITH<br>SHOOTER</h1>
+            <p style="color:var(--secondary); font-size: 1.1rem; margin: 20px 0;">Mira, spara e scoppia!</p>
+            <button class="btn" onclick="startGame()">INIZIA ✨</button>
+        </div>
+
+        <div id="game-over" class="overlay hidden">
+            <h1 class="title" style="font-size: 2.5rem;">GAME OVER</h1>
+            <div class="side-label" style="margin-top:20px">SCORE FINALE</div>
+            <div id="final-score" class="side-val" style="font-size: 4rem;">0</div>
+            <button class="btn" onclick="location.reload()" style="margin-top:20px">RIPROVA</button>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="side-card">
+            <div class="side-label">SCORE</div>
+            <div id="score-val" class="side-val">0</div>
+        </div>
+        <div class="side-card">
+            <div class="side-label">NEXT</div>
+            <div id="next-emoji" style="font-size: 4rem; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1));">🌸</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const shakeTarget = document.getElementById('shake-target');
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const COLORS = [
+        { h: 350, s: 100, l: 75, e: '🌸', glow: '#ffb3c1' },
+        { h: 200, s: 90, l: 75, e: '💧', glow: '#bde0fe' },
+        { h: 145, s: 80, l: 75, e: '🍏', glow: '#c1fba4' },
+        { h: 45, s: 100, l: 75, e: '🍋', glow: '#fff3b0' },
+        { h: 280, s: 80, l: 80, e: '🍇', glow: '#dec0f1' }
+    ];
+
+    const RADIUS = 21;
+    const ROWS = 15;
+    const COLS = 10;
+    let grid = [], particles = [], score = 0, gameActive = false;
+    let currentBubble = null, nextIdx = Math.floor(Math.random() * COLORS.length);
+    let isShooting = false, mouseX = 210, mouseY = 0;
+
+    function playPopSound(freq = 400, delay = 0) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        setTimeout(() => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+        }, delay);
+    }
+
+    function screenShake() {
+        shakeTarget.style.transform = `translate(${(Math.random()-0.5)*10}px, ${(Math.random()-0.5)*10}px)`;
+        setTimeout(() => shakeTarget.style.transform = 'translate(0,0)', 50);
+    }
+
+    function initGrid() {
+        for (let r = 0; r < ROWS; r++) {
+            grid[r] = [];
+            for (let c = 0; c < COLS; c++) {
+                grid[r][c] = (r < 6) ? { active: true, colorIdx: Math.floor(Math.random() * COLORS.length), scale: 1 } : { active: false, scale: 0 };
+            }
+        }
+    }
+
+    function getPos(r, c) {
+        const offset = (r % 2) ? RADIUS : 0;
+        return { x: c * RADIUS * 2 + RADIUS + offset, y: r * RADIUS * 1.75 + RADIUS + 20 };
+    }
+
+    function drawBubble(x, y, idx, scale = 1) {
+        const col = COLORS[idx];
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        
+        // Glow esterno
+        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, RADIUS * 1.5);
+        glow.addColorStop(0, col.glow + '66');
+        glow.addColorStop(1, col.glow + '00');
+        ctx.fillStyle = glow;
+        ctx.beginPath(); ctx.arc(0, 0, RADIUS * 1.5, 0, Math.PI*2); ctx.fill();
+
+        // Bolla principale
+        const grad = ctx.createRadialGradient(-RADIUS/3, -RADIUS/3, RADIUS/10, 0, 0, RADIUS);
+        grad.addColorStop(0, '#fff');
+        grad.addColorStop(0.3, `hsl(${col.h}, ${col.s}%, ${col.l}%)`);
+        grad.addColorStop(1, `hsl(${col.h}, ${col.s}%, ${col.l - 15}%)`);
+
+        ctx.beginPath();
+        ctx.arc(0, 0, RADIUS - 2, 0, Math.PI*2);
+        ctx.fillStyle = grad;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = 'rgba(0,0,0,0.1)';
+        ctx.fill();
+
+        // Riflesso lucido
+        ctx.beginPath();
+        ctx.ellipse(-RADIUS/2.5, -RADIUS/2.5, RADIUS/4, RADIUS/6, Math.PI/4, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.fill();
+
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(col.e, 0, 2);
+        ctx.restore();
+    }
+
+    function createExplosion(x, y, colorIdx) {
+        const col = COLORS[colorIdx];
+        for(let i=0; i<12; i++) {
+            particles.push({
+                x, y,
+                vx: (Math.random()-0.5)*12,
+                vy: (Math.random()-0.5)*12,
+                life: 1,
+                size: Math.random() * 5 + 2,
+                color: `hsl(${col.h}, ${col.s}%, ${col.l}%)`
+            });
+        }
+    }
+
+    function getNeighbors(r, c) {
+        const n = [];
+        const isOdd = r % 2 !== 0;
+        const dirs = isOdd ? [[0,-1],[0,1],[-1,0],[-1,1],[1,0],[1,1]] : [[0,-1],[0,1],[-1,-1],[-1,0],[1,-1],[1,0]];
+        dirs.forEach(([dr, dc]) => {
+            const nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) n.push({r: nr, c: nc});
+        });
+        return n;
+    }
+
+    function findMatches(startR, startC, targetIdx) {
+        const matches = [], queue = [{r: startR, c: startC}], visited = new Set();
+        visited.add(`${startR},${startC}`);
+        while(queue.length > 0) {
+            const {r, c} = queue.shift();
+            if (grid[r][c].active && grid[r][c].colorIdx === targetIdx) {
+                matches.push({r, c});
+                getNeighbors(r, c).forEach(nb => {
+                    if (!visited.has(`${nb.r},${nb.c}`)) {
+                        visited.add(`${nb.r},${nb.c}`);
+                        queue.push(nb);
+                    }
+                });
+            }
+        }
+        return matches;
+    }
+
+    function handleImpact() {
+        let bestDist = Infinity, tr = 0, tc = 0;
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (!grid[r][c].active) {
+                    const pos = getPos(r, c);
+                    const d = Math.hypot(currentBubble.x - pos.x, currentBubble.y - pos.y);
+                    if (d < bestDist) { bestDist = d; tr = r; tc = c; }
+                }
+            }
+        }
+
+        const colorIdx = currentBubble.colorIdx;
+        grid[tr][tc] = { active: true, colorIdx: colorIdx, scale: 0 };
+        
+        // Animazione comparsa
+        let s = 0;
+        const anim = setInterval(() => {
+            s += 0.2;
+            if (s >= 1) { grid[tr][tc].scale = 1; clearInterval(anim); }
+            else grid[tr][tc].scale = s;
+        }, 16);
+
+        const matches = findMatches(tr, tc, colorIdx);
+        if (matches.length >= 3) {
+            screenShake();
+            matches.forEach((m, i) => {
+                setTimeout(() => {
+                    if (!grid[m.r][m.c].active) return;
+                    const pos = getPos(m.r, m.c);
+                    createExplosion(pos.x, pos.y, colorIdx);
+                    grid[m.r][m.c].active = false;
+                    playPopSound(400 + (i * 60));
+                    score += 50;
+                    document.getElementById('score-val').innerText = score;
+                }, i * 50);
+            });
+        }
+
+        if (tr >= ROWS - 2) { gameActive = false; document.getElementById('game-over').classList.remove('hidden'); document.getElementById('final-score').innerText = score; }
+        else spawnShooter();
+    }
+
+    function spawnShooter() {
+        currentBubble = { x: 210, y: 620, vx: 0, vy: 0, colorIdx: nextIdx };
+        nextIdx = Math.floor(Math.random() * COLORS.length);
+        document.getElementById('next-emoji').innerText = COLORS[nextIdx].e;
+        isShooting = false;
+    }
+
+    function update() {
+        if (!gameActive) return;
+        ctx.clearRect(0, 0, 420, 680);
+
+        // Guida Laser Professionale
+        if (!isShooting) {
+            ctx.beginPath();
+            ctx.setLineDash([5, 10]);
+            ctx.strokeStyle = COLORS[currentBubble.colorIdx].glow;
+            ctx.lineWidth = 3;
+            ctx.moveTo(210, 620);
+            ctx.lineTo(mouseX, mouseY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // Griglia Bolle
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (grid[r][c].active) {
+                    const pos = getPos(r, c);
+                    drawBubble(pos.x, pos.y, grid[r][c].colorIdx, grid[r][c].scale);
+                }
+            }
+        }
+
+        // Particelle
+        particles.forEach((p, i) => {
+            p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life -= 0.02;
+            if(p.life <= 0) particles.splice(i, 1);
+            else {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+            }
+        });
+        ctx.globalAlpha = 1;
+
+        // Movimento Bolla Sparata
+        if (isShooting) {
+            currentBubble.x += currentBubble.vx;
+            currentBubble.y += currentBubble.vy;
+            if (currentBubble.x < RADIUS || currentBubble.x > 420 - RADIUS) {
+                currentBubble.vx *= -1;
+                playPopSound(200);
+            }
+            
+            let hit = currentBubble.y < RADIUS + 20;
+            if (!hit) {
+                for (let r = 0; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        if (grid[r][c].active) {
+                            const pos = getPos(r, c);
+                            if (Math.hypot(currentBubble.x - pos.x, currentBubble.y - pos.y) < RADIUS * 1.6) { hit = true; break; }
+                        }
+                    }
+                    if(hit) break;
+                }
+            }
+            if (hit) { isShooting = false; handleImpact(); }
+        }
+
+        if (currentBubble) drawBubble(currentBubble.x, currentBubble.y, currentBubble.colorIdx);
+        requestAnimationFrame(update);
+    }
+
+    canvas.addEventListener('mousemove', e => {
+        const rect = canvas.getBoundingClientRect();
+        mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+        mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+    });
+
+    canvas.addEventListener('mousedown', () => {
+        if (!gameActive || isShooting) return;
+        const angle = Math.atan2(mouseY - 620, mouseX - 210);
+        currentBubble.vx = Math.cos(angle) * 18;
+        currentBubble.vy = Math.sin(angle) * 18;
+        isShooting = true;
+        playPopSound(600);
+    });
+
+    function startGame() {
+        document.getElementById('start-screen').classList.add('hidden');
+        initGrid(); spawnShooter(); gameActive = true; update();
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fluid Sort Zenith</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap');
+
+        :root {
+            --bg: #fff5f5;
+            --primary: #ff5c7c;
+            --secondary: #8e7dbe;
+            --glass: rgba(255, 255, 255, 0.95);
+            --tube-w: 58px;
+            --tube-h: 170px;
+        }
+
+        * { box-sizing: border-box; touch-action: none; user-select: none; }
+        body {
+            margin: 0; background: var(--bg);
+            font-family: 'Fredoka', sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden;
+        }
+
+        /* UI CONTROLS */
+        .controls {
+            position: absolute; top: 20px; display: flex; gap: 15px; z-index: 100;
+        }
+        .btn-ui {
+            background: white; border: 2px solid var(--primary); color: var(--primary);
+            padding: 8px 16px; border-radius: 20px; font-weight: bold; cursor: pointer;
+            font-family: 'Fredoka'; transition: all 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .btn-ui:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(1); }
+        .btn-ui:active { transform: scale(0.95); }
+
+        #game-grid {
+            display: grid; grid-template-columns: repeat(5, 1fr);
+            gap: 30px; padding: 20px; z-index: 10; margin-top: 40px;
+        }
+
+        .tube {
+            width: var(--tube-w); height: var(--tube-h);
+            background: var(--glass); border: 4px solid #fff;
+            border-radius: 0 0 35px 35px;
+            display: flex; flex-direction: column-reverse;
+            cursor: pointer; position: relative; overflow: hidden;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tube.selected { transform: translateY(-35px); border-color: var(--primary); }
+
+        .liquid-block {
+            width: 100%; height: 100%;
+            position: absolute; bottom: 0; left: 0;
+            display: flex; flex-direction: column-reverse;
+            transition: transform 0.4s ease;
+        }
+
+        .liquid {
+            width: 100%; height: 25.1%;
+            position: relative;
+            transition: height 0.4s ease;
+        }
+
+        #fluid-svg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 999;
+        }
+
+        #ghost-tube {
+            position: fixed; width: var(--tube-w); height: var(--tube-h);
+            background: var(--glass); border: 4px solid #fff;
+            border-radius: 0 0 35px 35px; display: none; z-index: 1000;
+            pointer-events: none; transform-origin: 54px 4px;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .c1 { background: #ff5c7c; } .c2 { background: #8e7dbe; }
+        .c3 { background: #7cd6ff; } .c4 { background: #5cffb0; }
+        .c5 { background: #ffcd57; } .c6 { background: #ff8a5c; }
+        .c7 { background: #ffcfcf; } .c8 { background: #a8e6cf; }
+
+        #win-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 92, 124, 0.98);
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            color: white; z-index: 2000;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <button class="btn-ui" id="undoBtn" onclick="undo()" disabled>UNDO</button>
+        <button class="btn-ui" onclick="initGame()">RESTART</button>
+    </div>
+
+    <div id="game-grid"></div>
+    <div id="ghost-tube"></div>
+
+    <svg id="fluid-svg">
+        <path id="stream" d="" fill="none" stroke-width="12" stroke-linecap="round" />
+    </svg>
+
+    <div id="win-overlay">
+        <h1 style="font-size: 3rem;">ZENITH</h1>
+        <button onclick="initGame()" style="border:none; padding:15px 40px; border-radius:30px; font-weight:bold; color:var(--primary); cursor:pointer;">CONTINUA</button>
+    </div>
+
+    <script>
+        const grid = document.getElementById('game-grid');
+        const ghost = document.getElementById('ghost-tube');
+        const stream = document.getElementById('stream');
+        const undoBtn = document.getElementById('undoBtn');
+        const HEX = { 1:'#ff5c7c', 2:'#8e7dbe', 3:'#7cd6ff', 4:'#5cffb0', 5:'#ffcd57', 6:'#ff8a5c', 7:'#ffcfcf', 8:'#a8e6cf' };
+        
+        let tubesData = [];
+        let history = null;
+        let selectedIdx = null;
+        let isAnimating = false;
+
+        function initGame() {
+            grid.innerHTML = '';
+            document.getElementById('win-overlay').style.display = 'none';
+            tubesData = Array.from({length: 10}, () => []);
+            selectedIdx = null; isAnimating = false; history = null;
+            undoBtn.disabled = true;
+
+            let colors = [];
+            for(let i=1; i<=8; i++) for(let j=0; j<4; j++) colors.push(i);
+            colors.sort(() => Math.random() - 0.5);
+            
+            for(let i=0; i<8; i++) {
+                tubesData[i] = colors.splice(0, 4);
+            }
+
+            // Verifica se troppo facile
+            let readyTubes = 0;
+            tubesData.forEach(t => { if(t.length === 4 && t.every(c => c === t[0])) readyTubes++; });
+            if (readyTubes > 1) return initGame();
+
+            for(let i=0; i<10; i++) {
+                const tube = document.createElement('div');
+                tube.className = 'tube'; tube.id = `t-${i}`;
+                tube.onclick = () => handleTube(i);
+                grid.appendChild(tube);
+            }
+            draw();
+        }
+
+        function draw(excludeIndices = []) {
+            tubesData.forEach((data, i) => {
+                if (excludeIndices.includes(i)) return;
+                const el = document.getElementById(`t-${i}`);
+                el.innerHTML = '';
+                const block = document.createElement('div');
+                block.className = 'liquid-block';
+                data.forEach(c => {
+                    const l = document.createElement('div');
+                    l.className = `liquid c${c}`;
+                    block.appendChild(l);
+                });
+                el.appendChild(block);
+                el.classList.toggle('selected', selectedIdx === i);
+                el.style.visibility = 'visible';
+            });
+        }
+
+        function undo() {
+            if (isAnimating || !history) return;
+            tubesData = JSON.parse(JSON.stringify(history));
+            history = null;
+            undoBtn.disabled = true;
+            selectedIdx = null;
+            draw();
+        }
+
+        async function handleTube(idx) {
+            if (isAnimating) return;
+            if (selectedIdx === null) {
+                if (tubesData[idx].length > 0) { selectedIdx = idx; draw(); }
+            } else {
+                if (selectedIdx === idx) { selectedIdx = null; draw(); }
+                else {
+                    const from = tubesData[selectedIdx], to = tubesData[idx];
+                    if (to.length < 4 && (to.length === 0 || to[to.length-1] === from[from.length-1])) {
+                        // Salva stato per UNDO prima di iniziare l'animazione
+                        history = JSON.parse(JSON.stringify(tubesData));
+                        undoBtn.disabled = false;
+                        await pour(selectedIdx, idx);
+                    } else { selectedIdx = null; draw(); }
+                }
+            }
+        }
+
+        async function pour(fIdx, tIdx) {
+            isAnimating = true;
+            const fEl = document.getElementById(`t-${fIdx}`), tEl = document.getElementById(`t-${tIdx}`);
+            const rF = fEl.getBoundingClientRect(), rT = tEl.getBoundingClientRect();
+            const color = tubesData[fIdx][tubesData[fIdx].length - 1];
+
+            ghost.innerHTML = fEl.innerHTML;
+            ghost.style.display = 'block';
+            ghost.style.left = rF.left + 'px'; ghost.style.top = rF.top + 'px';
+            ghost.style.transform = 'none';
+            fEl.style.visibility = 'hidden';
+
+            await new Promise(r => setTimeout(r, 50));
+            const moveX = rT.left - rF.left - 48; 
+            const moveY = rT.top - rF.top - 15;
+            ghost.style.transform = `translate(${moveX}px, ${moveY}px) rotate(82deg)`;
+
+            await new Promise(r => setTimeout(r, 600));
+
+            const ghostBlock = ghost.querySelector('.liquid-block');
+            const targetBlock = tEl.querySelector('.liquid-block') || (() => {
+                const b = document.createElement('div'); b.className = 'liquid-block';
+                tEl.appendChild(b); return b;
+            })();
+
+            stream.setAttribute('stroke', HEX[color]);
+
+            while(tubesData[fIdx].length > 0 && tubesData[fIdx][tubesData[fIdx].length-1] === color && tubesData[tIdx].length < 4) {
+                const currentToCount = tubesData[tIdx].length;
+                const newLiq = document.createElement('div');
+                newLiq.className = `liquid c${color}`;
+                newLiq.style.height = "0";
+                targetBlock.appendChild(newLiq);
+
+                const sX = rT.left + 5, sY = rT.top + 5;
+                const eX = rT.left + 29, eY = rT.top + 165 - (currentToCount * 41);
+                stream.setAttribute('d', `M ${sX} ${sY} C ${sX} ${sY+40}, ${eX} ${sY+20}, ${eX} ${eY}`);
+
+                const fromCountBefore = tubesData[fIdx].length;
+                ghostBlock.style.transform = `translateY(-${(5 - fromCountBefore) * 25}%)`;
+                
+                await new Promise(r => requestAnimationFrame(r));
+                newLiq.style.height = "25.1%";
+
+                tubesData[tIdx].push(tubesData[fIdx].pop());
+                await new Promise(r => setTimeout(r, 450));
+            }
+
+            stream.setAttribute('d', "");
+            ghost.style.transform = `translate(0,0) rotate(0deg)`;
+            await new Promise(r => setTimeout(r, 500));
+            ghost.style.display = 'none';
+            selectedIdx = null; isAnimating = false;
+            draw(); checkWin();
+        }
+
+        function checkWin() {
+            const win = tubesData.every(t => t.length === 0 || (t.length === 4 && t.every(c => c === t[0])));
+            if (win) document.getElementById('win-overlay').style.display = 'flex';
+        }
+
+        initGame();
+    </script>
+</body>
+</html>

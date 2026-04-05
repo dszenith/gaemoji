@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tower Stack Pro - ZENITH</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap');
+        :root { --bg: #fff5f5; --primary: #ff5c7c; --secondary: #8e7dbe; }
+        * { box-sizing: border-box; touch-action: none; user-select: none; }
+        body { margin: 0; background: var(--bg); font-family: 'Fredoka', sans-serif; overflow: hidden; }
+        #score { position: absolute; top: 40px; width: 100%; text-align: center; font-size: 4rem; color: var(--secondary); font-weight: 700; z-index: 10; pointer-events: none; opacity: 0.8; }
+        #msg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 92, 124, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: white; text-align: center; }
+        .btn { margin-top: 20px; padding: 15px 40px; background: white; color: var(--primary); border-radius: 30px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div id="score">0</div>
+    <div id="msg">
+        <h1 style="font-size: 3.5rem; margin:0;">GAME OVER</h1>
+        <p id="final-score" style="font-size: 1.5rem;">Score: 0</p>
+        <div class="btn" onclick="resetGame()">RIPROVA</div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+
+    <script>
+        let scene, camera, renderer, world;
+        let stack = [];
+        let debris = [];
+        const boxHeight = 0.6;
+        const baseSize = 3;
+        let gameActive = true;
+        let score = 0;
+        let cameraY = 4;
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xfff5f5);
+
+            const aspect = window.innerWidth / window.innerHeight;
+            const d = 4;
+            camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 0.1, 1000);
+            camera.position.set(4, 4, 4);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            dirLight.position.set(10, 20, 7);
+            scene.add(dirLight);
+
+            resetGame();
+            animate();
+        }
+
+        function resetGame() {
+            stack.forEach(b => scene.remove(b.mesh));
+            debris.forEach(d => scene.remove(d.mesh));
+            stack = []; debris = []; score = 0;
+            gameActive = true; cameraY = 4;
+            document.getElementById('score').innerText = "0";
+            document.getElementById('msg').style.display = "none";
+            
+            // Base
+            addLayer(0, 0, baseSize, baseSize);
+            // Primo blocco mobile
+            addLayer(0, 0, baseSize, baseSize, 'x');
+        }
+
+        function addLayer(x, z, w, d, direction) {
+            const y = boxHeight * stack.length;
+            const color = new THREE.Color(`hsl(${210 + stack.length * 5}, 70%, 75%)`);
+            const geometry = new THREE.BoxGeometry(w, boxHeight, d);
+            const material = new THREE.MeshPhongMaterial({ color });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(x, y, z);
+            scene.add(mesh);
+
+            stack.push({ mesh, width: w, depth: d, direction, speed: 0.05 + (stack.length * 0.001) });
+        }
+
+        function addDebris(x, z, w, d, color) {
+            const geometry = new THREE.BoxGeometry(w, boxHeight, d);
+            const material = new THREE.MeshPhongMaterial({ color, transparent: true, opacity: 0.8 });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(x, boxHeight * (stack.length - 1), z);
+            scene.add(mesh);
+            debris.push({ mesh, vy: 0, vrx: Math.random()*0.1, vrz: Math.random()*0.1 });
+        }
+
+        function handleAction() {
+            if (!gameActive) return;
+
+            const top = stack[stack.length - 1];
+            const prev = stack[stack.length - 2];
+            const direction = top.direction;
+
+            const delta = top.mesh.position[direction] - prev.mesh.position[direction];
+            const size = direction === 'x' ? top.width : top.depth;
+            const overlap = size - Math.abs(delta);
+
+            if (overlap <= 0) {
+                gameActive = false;
+                document.getElementById('final-score').innerText = "Score: " + score;
+                document.getElementById('msg').style.display = "flex";
+                return;
+            }
+
+            // Taglio
+            const newW = direction === 'x' ? overlap : top.width;
+            const newD = direction === 'z' ? overlap : top.depth;
+            const color = top.mesh.material.color;
+
+            // Creazione Debris (il pezzo che cade)
+            const debrisSize = size - overlap;
+            const debrisPos = top.mesh.position[direction] + (overlap / 2 + debrisSize / 2) * Math.sign(delta);
+            if (direction === 'x') {
+                addDebris(debrisPos, top.mesh.position.z, debrisSize, top.depth, color);
+            } else {
+                addDebris(top.mesh.position.x, debrisPos, top.width, debrisSize, color);
+            }
+
+            // Aggiorna blocco corrente
+            top.width = newW;
+            top.depth = newD;
+            top.mesh.geometry.dispose();
+            top.mesh.geometry = new THREE.BoxGeometry(newW, boxHeight, newD);
+            top.mesh.position[direction] = prev.mesh.position[direction] + delta / 2;
+
+            score++;
+            document.getElementById('score').innerText = score;
+            
+            // Nuova camera height target
+            cameraY += boxHeight;
+            
+            const nextDir = direction === 'x' ? 'z' : 'x';
+            addLayer(nextDir === 'x' ? -4 : top.mesh.position.x, nextDir === 'z' ? -4 : top.mesh.position.z, newW, newD, nextDir);
+        }
+
+        function animate() {
+            if (gameActive) {
+                const top = stack[stack.length - 1];
+                top.mesh.position[top.direction] += top.speed;
+                if (Math.abs(top.mesh.position[top.direction]) > 4) {
+                    top.speed *= -1; // Rimbalza se non clicchi
+                }
+            }
+
+            // Movimento Camera fluido
+            camera.position.y += (cameraY - camera.position.y) * 0.1;
+            camera.lookAt(0, camera.position.y - 4, 0);
+
+            // Animazione Debris
+            debris.forEach((d, i) => {
+                d.vy -= 0.01;
+                d.mesh.position.y += d.vy;
+                d.mesh.rotation.x += d.vrx;
+                d.mesh.rotation.z += d.vrz;
+                if(d.mesh.position.y < -5) {
+                    scene.remove(d.mesh);
+                    debris.splice(i, 1);
+                }
+            });
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('mousedown', handleAction);
+        window.addEventListener('touchstart', (e) => { e.preventDefault(); handleAction(); });
+        window.addEventListener('message', (e) => { if(e.data.type === 'keydown') handleAction(); });
+        window.onload = init;
+    </script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap');
+
+        :root {
+            --light-sq: #fff5f5;
+            --dark-sq: #ffcfcf;
+            --primary: #ff5c7c;
+            --secondary: #8e7dbe;
+            --white-piece: #ffffff;
+            --black-piece: #5a4b81;
+        }
+
+        body, html { 
+            margin: 0; padding: 0; background: transparent; 
+            font-family: 'Fredoka', sans-serif; overflow: hidden; 
+            height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        /* Dashboard Info */
+        #game-info {
+            display: flex; justify-content: space-between; width: 380px; margin-bottom: 10px;
+        }
+
+        .player-panel {
+            background: white; padding: 8px 15px; border-radius: 20px;
+            border: 3px solid var(--dark-sq); display: flex; flex-direction: column; align-items: center;
+            min-width: 100px;
+        }
+
+        .timer { font-size: 1.4rem; font-weight: bold; color: var(--primary); }
+        .captured { font-size: 1.1rem; height: 24px; color: var(--secondary); letter-spacing: -2px; }
+        .active-turn { border-color: var(--primary); box-shadow: 0 0 10px rgba(255, 92, 124, 0.3); }
+
+        #board {
+            display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
+            width: 380px; height: 380px; border: 8px solid white; border-radius: 25px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.08); overflow: hidden; background: white;
+        }
+
+        .square {
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.4rem; cursor: pointer; position: relative;
+        }
+
+        .light { background-color: var(--light-sq); }
+        .dark { background-color: var(--dark-sq); }
+        .selected { background-color: #ffe082 !important; }
+        .last-move { background-color: rgba(255, 255, 255, 0.5) !important; }
+
+        .valid-move::after {
+            content: ""; width: 12px; height: 12px;
+            background: rgba(142, 125, 190, 0.3); border-radius: 50%; position: absolute;
+        }
+
+        .piece {
+            z-index: 2; transition: transform 0.1s; cursor: pointer;
+            user-select: none; -webkit-text-stroke: 1px rgba(0,0,0,0.05);
+        }
+
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.95); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 100; text-align: center;
+        }
+        
+        .btn {
+            background: var(--primary); color: white; border: none;
+            padding: 12px 30px; border-radius: 20px; font-family: 'Fredoka';
+            font-weight: bold; cursor: pointer; margin-top: 15px; box-shadow: 0 4px 0 #d93858;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="game-info">
+        <div id="panel-b" class="player-panel">
+            <div class="captured" id="cap-w"></div>
+            <div class="timer" id="timer-b">10:00</div>
+            <div style="font-size: 0.7rem; color: #aaa;">NERO</div>
+        </div>
+        <div id="panel-w" class="player-panel active-turn">
+            <div class="captured" id="cap-b"></div>
+            <div class="timer" id="timer-w">10:00</div>
+            <div style="font-size: 0.7rem; color: #aaa;">BIANCO</div>
+        </div>
+    </div>
+
+    <div id="board"></div>
+
+    <div id="game-over" class="overlay hidden">
+        <h2 id="win-msg" style="color: var(--primary); font-size: 2rem;">FINITA!</h2>
+        <button class="btn" onclick="location.reload()">RIGIOCA</button>
+    </div>
+
+    <script>
+        const chess = new Chess();
+        const boardEl = document.getElementById('board');
+        const timers = { w: 600, b: 600 };
+        let timerInterval;
+        let selectedSquare = null;
+
+        // Pezzi pieni (Solid Pieces)
+        const PIECES = {
+            'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
+            'P': '♟', 'R': '♜', 'N': '♞', 'B': '♝', 'Q': '♛', 'K': '♚'
+        };
+
+        // Audio Engine
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(freq, type = 'sine', duration = 0.1) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function startMusic() {
+            // Semplice arpeggio di sottofondo rilassante
+            setInterval(() => {
+                if(chess.game_over()) return;
+                const notes = [261.63, 329.63, 392.00, 523.25];
+                playSound(notes[Math.floor(Math.random()*notes.length)], 'sine', 1.5);
+            }, 3000);
+        }
+
+        function updateTimers() {
+            const turn = chess.turn();
+            timers[turn]--;
+            const min = Math.floor(timers[turn] / 60);
+            const sec = timers[turn] % 60;
+            document.getElementById(`timer-${turn}`).innerText = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+            if (timers[turn] <= 0) showGameOver(turn === 'w' ? 'b' : 'w');
+        }
+
+        function createBoard() {
+            boardEl.innerHTML = '';
+            const board = chess.board();
+            const captured = { w: [], b: [] };
+            
+            // Logica catturati
+            const history = chess.history({ verbose: true });
+            history.forEach(m => { if (m.captured) captured[m.color === 'w' ? 'b' : 'w'].push(PIECES[m.captured.toUpperCase()]); });
+            document.getElementById('cap-w').innerText = captured.w.join('');
+            document.getElementById('cap-b').innerText = captured.b.join('');
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const sq = document.createElement('div');
+                    const name = String.fromCharCode(97 + c) + (8 - r);
+                    const piece = board[r][c];
+                    sq.className = `square ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
+                    sq.dataset.pos = name;
+                    
+                    if (piece) {
+                        const pEl = document.createElement('div');
+                        pEl.className = 'piece';
+                        pEl.innerText = PIECES[piece.type.toUpperCase()];
+                        pEl.style.color = piece.color === 'w' ? 'var(--white-piece)' : 'var(--black-piece)';
+                        sq.appendChild(pEl);
+                    }
+                    sq.onclick = () => handleSquareClick(name);
+                    boardEl.appendChild(sq);
+                }
+            }
+            
+            document.getElementById('panel-w').classList.toggle('active-turn', chess.turn() === 'w');
+            document.getElementById('panel-b').classList.toggle('active-turn', chess.turn() === 'b');
+        }
+
+        function handleSquareClick(pos) {
+            if (audioCtx.state === 'suspended') { audioCtx.resume(); startMusic(); }
+            
+            if (chess.get(pos) && chess.get(pos).color === chess.turn()) {
+                playSound(440, 'triangle', 0.05); // Suono selezione
+                clearHighlights();
+                selectedSquare = pos;
+                document.querySelector(`[data-pos="${pos}"]`).classList.add('selected');
+                chess.moves({ square: pos, verbose: true }).forEach(m => {
+                    document.querySelector(`[data-pos="${m.to}"]`).classList.add('valid-move');
+                });
+            } else if (selectedSquare) {
+                const move = chess.move({ from: selectedSquare, to: pos, promotion: 'q' });
+                if (move) {
+                    playSound(660, 'sine', 0.1); // Suono mossa
+                    if (move.captured) playSound(220, 'sawtooth', 0.2); // Suono cattura
+                    selectedSquare = null;
+                    createBoard();
+                    if (!timerInterval) timerInterval = setInterval(updateTimers, 1000);
+                    if (chess.game_over()) showGameOver();
+                } else {
+                    selectedSquare = null;
+                    clearHighlights();
+                }
+            }
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.square').forEach(sq => sq.classList.remove('selected', 'valid-move'));
+        }
+
+        function showGameOver(winner) {
+            clearInterval(timerInterval);
+            document.getElementById('game-over').classList.remove('hidden');
+            let msg = "PATTA!";
+            if (chess.in_checkmate() || winner) {
+                const winColor = winner ? (winner === 'w' ? 'BIANCO' : 'NERO') : (chess.turn() === 'w' ? 'NERO' : 'BIANCO');
+                msg = `VINCE IL ${winColor}! 🏆`;
+            }
+            document.getElementById('win-msg').innerText = msg;
+        }
+
+        createBoard();
+    </script>
+</body>
+</html>

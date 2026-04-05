@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GAEMOJI - Arcade Center</title>
+    <title>GAEMOJI - Luca Carbonara</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Sigmar&display=swap');
         
@@ -14,7 +14,8 @@
             --accent: #ffcfcf;
         }
 
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: var(--bg);
@@ -22,86 +23,113 @@
             overflow: hidden; display: flex; justify-content: center; align-items: center;
         }
 
-        /* LOGO MASTER */
         #brand-logo {
-            position: absolute; top: 20px; left: 20px;
-            font-family: 'Sigmar', cursive; font-size: 3.5rem; color: white;
+            position: fixed; top: 20px; left: 20px;
+            font-family: 'Sigmar', cursive; font-size: 2.5rem; color: white;
             text-shadow: 4px 4px 0px var(--primary);
-            transform: rotate(-5deg); z-index: 3000;
+            transform: rotate(-5deg); z-index: 9999;
             cursor: pointer; transition: 0.2s;
         }
         #brand-logo:hover { transform: rotate(-2deg) scale(1.1); }
 
-        /* BOX NOME */
         #name-box {
-            position: absolute; bottom: 20px; left: 20px;
-            background: white; padding: 10px 15px; border-radius: 20px;
-            border: 4px solid var(--accent); display: flex; align-items: center;
-            gap: 10px; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            position: fixed; bottom: 20px; left: 20px;
+            background: white; padding: 8px 12px; border-radius: 20px;
+            border: 3px solid var(--accent); display: flex; align-items: center;
+            gap: 8px; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.05);
         }
-        #name-box label { font-size: 0.8rem; font-weight: bold; color: var(--primary); }
+        #name-box label { font-size: 0.7rem; font-weight: bold; color: var(--primary); }
         #name-box input {
-            border: none; background: #fff5f5; padding: 5px 10px;
-            border-radius: 10px; font-family: 'Fredoka'; font-weight: bold;
-            color: var(--secondary); width: 120px; outline: none;
+            border: none; background: #fff5f5; padding: 4px 8px;
+            border-radius: 8px; font-family: 'Fredoka'; font-weight: bold;
+            color: var(--secondary); width: 100px; outline: none; font-size: 0.8rem;
         }
 
         .page {
             position: absolute; width: 100%; height: 100%;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            display: flex; flex-direction: column; justify-content: flex-start; align-items: center;
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            padding: 20px;
+            padding: 40px 20px;
         }
-        .hidden { opacity: 0; pointer-events: none; transform: translateY(20px); }
+        .hidden { opacity: 0 !important; pointer-events: none !important; transform: translateY(20px); }
 
-        header { text-align: center; margin-bottom: 30px; }
-        h1 { font-size: 3.8rem; color: var(--primary); margin: 0; text-transform: uppercase; letter-spacing: -2px; }
-        .welcome { color: var(--secondary); font-size: 1.5rem; margin-top: 5px; }
+        header { text-align: center; margin-bottom: 20px; margin-top: 20px; }
+        h1 { font-size: 3rem; color: var(--primary); margin: 0; text-transform: uppercase; letter-spacing: -2px; }
+        .welcome { color: var(--secondary); font-size: 1.2rem; margin-top: 2px; }
 
-        /* Griglia Giochi */
+        /* Griglia Ottimizzata */
         .menu-container { 
-            display: grid; grid-template-columns: repeat(4, 1fr); 
-            gap: 20px; max-width: 1100px; width: 100%; padding: 10px;
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+            gap: 12px; 
+            max-width: 1200px; 
+            width: 100%; 
+            padding: 20px;
+            overflow-y: auto; 
+            max-height: 75vh;
+            scrollbar-width: none; /* Firefox */
+            padding-bottom: 100px;
+        }
+        .menu-container::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+
+        /* Effetto dissolvenza per suggerire lo scroll */
+        .page::after {
+            content: '';
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 80px;
+            background: linear-gradient(transparent, var(--bg));
+            pointer-events: none;
         }
 
         .menu-card {
-            background: white; border-radius: 40px; padding: 25px;
-            text-align: center; border: 8px solid white;
-            cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
-            position: relative; overflow: hidden;
+            background: white; border-radius: 25px; padding: 15px;
+            text-align: center; border: 4px solid white;
+            cursor: pointer; transition: all 0.3s;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
             display: flex; flex-direction: column; align-items: center;
+            justify-content: center;
         }
+        .menu-card:hover { transform: translateY(-5px); border-color: var(--accent); }
 
-        .menu-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(255, 92, 124, 0.15); }
-        .card-emoji { font-size: 4rem; margin-bottom: 5px; }
-        .badge { color: #aaa; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
-        .menu-card h3 { margin: 5px 0 15px 0; color: var(--primary); font-size: 1.4rem; letter-spacing: 1px; }
+        .card-emoji { font-size: 2.8rem; margin-bottom: 2px; }
+        .badge { color: #aaa; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; }
+        .menu-card h3 { margin: 2px 0 8px 0; color: var(--primary); font-size: 0.9rem; white-space: nowrap; }
 
-        /* Colori bordi card */
+        /* Bordi Colorati */
+        .border-purple { border-color: #e0c3fc; }
         .border-yellow { border-color: #ffeb3b; }
         .border-menta { border-color: #c3fcf2; }
         .border-pink { border-color: #ffcfcf; }
         .border-green { border-color: #d1f7c4; }
-        .border-purple { border-color: #e0c3fc; }
         .border-orange { border-color: #ffd8a8; }
-        .border-wave { border-color: #4a2c7a; } /* Viola Scuro per Wave Dash */
+        .border-blue { border-color: #7cd6ff; }
 
         .play-btn {
-            background: var(--primary); color: white; padding: 10px 30px;
-            border-radius: 20px; font-weight: bold; box-shadow: 0 5px 0 #d93858;
-            font-size: 0.9rem;
+            background: var(--primary); color: white; padding: 5px 15px;
+            border-radius: 15px; font-weight: bold; font-size: 0.7rem;
         }
 
-        #game-view { width: 100%; height: 100%; background: var(--bg); }
-        iframe { width: 100%; height: 100%; border: none; }
+        #game-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 4000; }
+        iframe { width: 100%; height: 100%; border: none; background: transparent; }
 
-        footer { position: absolute; bottom: 15px; color: var(--accent); font-weight: bold; font-size: 0.7rem; letter-spacing: 3px; }
+        #mobile-ctrl {
+            position: fixed; bottom: 40px; left: 0; width: 100%;
+            display: flex; justify-content: space-between; padding: 0 40px;
+            z-index: 5000; pointer-events: none;
+        }
+        .joy-btn {
+            width: 70px; height: 70px; background: rgba(255,255,255,0.6);
+            backdrop-filter: blur(8px); border: 3px solid white; border-radius: 50%;
+            color: var(--secondary); font-size: 1.2rem; display: flex; align-items: center; 
+            justify-content: center; pointer-events: auto; font-weight: bold;
+        }
+        .dpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 
-        @media (max-width: 900px) {
-            .menu-container { grid-template-columns: repeat(2, 1fr); overflow-y: auto; max-height: 70vh; }
-            h1 { font-size: 2.8rem; }
-            body { overflow: auto; }
+        footer { margin-top: auto; padding: 20px; color: var(--accent); font-weight: bold; font-size: 0.6rem; letter-spacing: 3px; z-index: 5; }
+
+        @media (max-width: 600px) {
+            .menu-container { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            h1 { font-size: 2.2rem; }
+            .card-emoji { font-size: 2.2rem; }
         }
     </style>
 </head>
@@ -110,103 +138,125 @@
     <div id="brand-logo" onclick="goHome()">ZENITH</div>
 
     <div id="name-box">
-        <label>NOME:</label>
+        <label>PLAYER:</label>
         <input type="text" id="user-name-input" placeholder="..." maxlength="12">
     </div>
 
     <div id="main-menu" class="page">
         <header>
             <h1>GAEMOJI</h1>
-            <div class="welcome">Ciao, <strong id="display-name">L E G E N D S</strong></div>
+            <div class="welcome">Hey, <strong id="display-name">L E G E N D S</strong></div>
         </header>
 
         <div class="menu-container">
-            <div class="menu-card border-wave" onclick="launchGame('wave-dash')">
-                <div class="card-emoji">🌊</div>
-                <div class="badge">Ritmo</div>
-                <h3>WAVE DASH</h3>
-                <div class="play-btn">GIOCA</div>
+            <div class="menu-card border-pink" onclick="launchGame('fluid-sort')">
+                <div class="card-emoji">🧪</div><div class="badge">Puzzle</div><h3>FLUID SORT</h3><div class="play-btn">GIOCA</div>
+            </div>
+            <div class="menu-card border-blue" onclick="launchGame('2048-zenith')">
+                <div class="card-emoji">🔢</div><div class="badge">Logica</div><h3>2048 ZENITH</h3><div class="play-btn">GIOCA</div>
+            </div>
+            <div class="menu-card border-purple" onclick="launchGame('tower-stack')">
+                <div class="card-emoji">🏗️</div><div class="badge">3D</div><h3>TOWER STACK</h3><div class="play-btn">GIOCA</div>
+            </div>
+            <div class="menu-card border-purple" onclick="launchGame('wave-dash')">
+                <div class="card-emoji">🌊</div><div class="badge">Ritmo</div><h3>WAVE DASH</h3><div class="play-btn">GIOCA</div>
+            </div>
+            <div class="menu-card border-orange" onclick="launchGame('bubble-shooter')">
+                <div class="card-emoji">🫧</div><div class="badge">Arcade</div><h3>BUBBLE SHOOTER</h3><div class="play-btn">GIOCA</div>
             </div>
 
             <div class="menu-card border-yellow" onclick="launchGame('ninja')">
-                <div class="card-emoji">🥷</div>
-                <div class="badge">Azione</div>
-                <h3>NINJA SLICE</h3>
-                <div class="play-btn">GIOCA</div>
+                <div class="card-emoji">🥷</div><div class="badge">Azione</div><h3>NINJA SLICE</h3><div class="play-btn">GIOCA</div>
             </div>
-
-            <div class="menu-card border-menta" onclick="launchGame('racers')">
-                <div class="card-emoji">🏎️</div>
-                <div class="badge">2 Player</div>
-                <h3>RACERS</h3>
-                <div class="play-btn">GIOCA</div>
+            <div class="menu-card border-menta" onclick="launchGame('memory')">
+                <div class="card-emoji">🧠</div><div class="badge">Mente</div><h3>MEMORY</h3><div class="play-btn">GIOCA</div>
             </div>
-
             <div class="menu-card border-pink" onclick="launchGame('suiko')">
-                <div class="card-emoji">🍉</div>
-                <div class="badge">Popolare</div>
-                <h3>SUIKO</h3>
-                <div class="play-btn">GIOCA</div>
+                <div class="card-emoji">🍉</div><div class="badge">Popolare</div><h3>SUIKO</h3><div class="play-btn">GIOCA</div>
             </div>
-
             <div class="menu-card border-green" onclick="launchGame('snake')">
-                <div class="card-emoji">🐍</div>
-                <div class="badge">Classico</div>
-                <h3>SNAKE</h3>
-                <div class="play-btn">GIOCA</div>
+                <div class="card-emoji">🐍</div><div class="badge">Classic</div><h3>SNAKE</h3><div class="play-btn">GIOCA</div>
             </div>
-
             <div class="menu-card border-purple" onclick="launchGame('tetris')">
-                <div class="card-emoji">🧱</div>
-                <div class="badge">Puzzle</div>
-                <h3>TETRIS</h3>
-                <div class="play-btn">GIOCA</div>
+                <div class="card-emoji">🧱</div><div class="badge">Puzzle</div><h3>TETRIS</h3><div class="play-btn">GIOCA</div>
             </div>
 
-            <div class="menu-card border-orange" onclick="launchGame('talpa')">
-                <div class="card-emoji">🐹</div>
-                <div class="badge">Bonus</div>
-                <h3>TALPA HIT</h3>
-                <div class="play-btn">GIOCA</div>
+            <div class="menu-card border-yellow" onclick="launchGame('geometry')">
+                <div class="card-emoji">📐</div><div class="badge">Skill</div><h3>GEOMETRY</h3><div class="play-btn">GIOCA</div>
+            </div>
+            <div class="menu-card border-blue" onclick="launchGame('chess')">
+                <div class="card-emoji">♟️</div><div class="badge">Board</div><h3>CHESS</h3><div class="play-btn">GIOCA</div>
+            </div>
+            <div class="menu-card border-green" onclick="launchGame('talpa')">
+                <div class="card-emoji">🔨</div><div class="badge">Clicker</div><h3>TALPA</h3><div class="play-btn">GIOCA</div>
+            </div>
+            <div class="menu-card border-orange" onclick="launchGame('racers')">
+                <div class="card-emoji">🏎️</div><div class="badge">Racing</div><h3>RACERS</h3><div class="play-btn">GIOCA</div>
             </div>
         </div>
 
-        <footer>PRODOTTO DA ZENITH</footer>
+        <footer>ZENITH ARCADE SYSTEM</footer>
     </div>
 
-    <div id="game-view" class="page hidden">
+    <div id="game-view" class="hidden">
         <iframe id="game-frame" src=""></iframe>
+        <div id="mobile-ctrl" class="hidden">
+            <div class="dpad" id="dpad-group">
+                <div></div><div class="joy-btn" ontouchstart="sendKey(38,'ArrowUp')">▲</div><div></div>
+                <div class="joy-btn" ontouchstart="sendKey(37,'ArrowLeft')">◀</div><div></div><div class="joy-btn" ontouchstart="sendKey(39,'ArrowRight')">▶</div>
+                <div></div><div class="joy-btn" ontouchstart="sendKey(40,'ArrowDown')">▼</div><div></div>
+            </div>
+            <div class="joy-btn" id="action-btn" style="width:110px; border-radius:20px; background: var(--primary); color: white;" ontouchstart="sendKey(32,' ')">ACTION</div>
+        </div>
     </div>
 
     <script>
         const nameInput = document.getElementById('user-name-input');
         const displayName = document.getElementById('display-name');
+        const gameFrame = document.getElementById('game-frame');
+        const gameView = document.getElementById('game-view');
+        const mobileCtrl = document.getElementById('mobile-ctrl');
 
-        const savedName = localStorage.getItem('zenith_user_name');
-        if (savedName) {
-            nameInput.value = savedName;
-            displayName.innerText = savedName;
-        }
-
-        nameInput.addEventListener('input', (e) => {
-            const val = e.target.value;
-            displayName.innerText = val || "L E G E N D S";
-            localStorage.setItem('zenith_user_name', val);
-        });
+        nameInput.value = localStorage.getItem('zenith_name') || "";
+        displayName.innerText = nameInput.value;
+        
+        nameInput.oninput = () => {
+            localStorage.setItem('zenith_name', nameInput.value);
+            displayName.innerText = nameInput.value;
+        };
 
         function launchGame(id) {
-            // Carica il gioco dalla cartella games/id/index.html
-            document.getElementById('game-frame').src = `games/${id}/index.html`;
+            gameFrame.src = `games/${id}/index.html`;
             document.getElementById('main-menu').classList.add('hidden');
             document.getElementById('name-box').classList.add('hidden');
-            document.getElementById('game-view').classList.remove('hidden');
+            gameView.classList.remove('hidden');
+
+            if(window.innerWidth < 1024) {
+                const useDpad = ['snake', 'tetris', 'racers', 'chess'];
+                const useAction = ['tower-stack', 'wave-dash', 'ninja', 'memory', 'geometry', 'talpa'];
+                const touchOnly = ['2048-zenith', 'fluid-sort', 'suiko', 'bubble-shooter'];
+                
+                if (touchOnly.includes(id)) {
+                    mobileCtrl.classList.add('hidden');
+                } else {
+                    mobileCtrl.classList.remove('hidden');
+                    document.getElementById('dpad-group').style.display = useDpad.includes(id) ? 'grid' : 'none';
+                    document.getElementById('action-btn').style.display = useAction.includes(id) ? 'flex' : 'none';
+                }
+            }
         }
 
         function goHome() {
-            document.getElementById('game-frame').src = "";
-            document.getElementById('game-view').classList.add('hidden');
+            gameFrame.src = "";
+            gameView.classList.add('hidden');
+            mobileCtrl.classList.add('hidden');
             document.getElementById('main-menu').classList.remove('hidden');
             document.getElementById('name-box').classList.remove('hidden');
+        }
+
+        function sendKey(code, key) {
+            const win = gameFrame.contentWindow;
+            win.postMessage({ type: 'keydown', keyCode: code, key: key }, '*');
         }
     </script>
 </body>
