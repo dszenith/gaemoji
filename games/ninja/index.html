@@ -1,384 +1,466 @@
 <!DOCTYPE html>
+
 <html lang="it">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bubble Pop - Zenith Arcade</title>
+
     <style>
+
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap');
+
+        body, html { margin: 0; padding: 0; background: transparent; font-family: 'Fredoka', sans-serif; overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center; cursor: crosshair; }
+
         
-        :root {
-            --bg: #fff5f5;
-            --primary: #ff5c7c;
-            --secondary: #8e7dbe;
-            --accent: #ffcfcf;
-            --surface: #ffffff;
-        }
 
-        body, html { 
-            margin: 0; padding: 0; background: var(--bg); 
-            font-family: 'Fredoka', sans-serif; overflow: hidden; 
-            height: 100vh; display: flex; justify-content: center; align-items: center; 
-        }
+        #game-container { position: relative; width: 800px; height: 600px; background: #fff5f5; border: 10px solid white; border-radius: 40px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); overflow: hidden; }
 
-        #game-container { 
-            position: relative; width: 100vw; height: 100vh; 
-            max-width: 500px; max-height: 850px;
-            background: var(--surface); border: 8px solid white; 
-            border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.12); 
-            overflow: hidden; display: flex; flex-direction: column;
-        }
+        canvas { display: block; background: transparent; position: absolute; top:0; left:0; }
 
-        canvas { display: block; flex: 1; touch-action: none; cursor: crosshair; }
 
-        .hud { 
-            position: absolute; top: 0; width: 100%; height: 80px;
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0 25px; box-sizing: border-box; pointer-events: none; z-index: 100;
-        }
+        .hud { position: absolute; top: 20px; width: 100%; display: flex; justify-content: flex-end; padding: 0 30px; box-sizing: border-box; pointer-events: none; z-index: 100; gap: 20px; }
 
-        .score-box { 
-            background: white; padding: 8px 20px; border-radius: 20px; 
-            border: 4px solid var(--accent); color: var(--primary); 
-            font-size: 1.8rem; font-weight: 700; box-shadow: 0 6px 0 var(--accent);
-            transition: transform 0.1s ease;
-        }
+        .score-box { background: white; padding: 10px 25px; border-radius: 20px; border: 4px solid #ffcfcf; color: #ff5c7c; font-size: 2rem; font-weight: bold; box-shadow: 0 5px 0 #ffcfcf; }
 
-        #flash { 
-            position: absolute; top:0; left:0; width:100%; height:100%; 
-            background: white; opacity: 0; pointer-events: none; z-index: 200; 
-        }
+        .lives { font-size: 2.2rem; filter: drop-shadow(2px 2px 0px white); }
+
+
+        #flash { position: absolute; top:0; left:0; width:100%; height:100%; background: white; opacity: 0; pointer-events: none; z-index: 200; }
+
         
-        .overlay { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(255, 255, 255, 0.92); display: flex; 
-            flex-direction: column; justify-content: center; 
-            align-items: center; z-index: 300; backdrop-filter: blur(8px); 
-        }
 
-        .btn { 
-            background: var(--primary); border: none; color: white; 
-            padding: 18px 50px; font-weight: bold; border-radius: 30px; 
-            cursor: pointer; font-size: 1.5rem; box-shadow: 0 6px 0 #d93858;
-            transition: 0.1s;
-        }
-        .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #d93858; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 300; backdrop-filter: blur(10px); text-align: center; }
+
+        .btn { background: #ff5c7c; border: none; color: white; padding: 15px 40px; font-weight: bold; border-radius: 25px; cursor: pointer; font-size: 1.3rem; box-shadow: 0 5px 0 #d93858; }
+
+        .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #d93858; }
+
         .hidden { display: none !important; }
+
     </style>
+
 </head>
+
 <body>
 
+
     <div id="game-container">
+
         <div id="flash"></div>
+
         
+
         <div class="hud">
+
             <div class="score-box" id="score-val">0</div>
-            <div style="text-align: right">
-                <div style="font-size: 0.8rem; color: var(--secondary); font-weight: bold;">PROSSIMO</div>
-                <div id="next-preview" style="height: 30px; width: 30px; margin-left: auto;"></div>
-            </div>
+
+            <div id="lives-box" class="lives">❤️❤️❤️</div>
+
         </div>
 
-        <canvas id="gameCanvas"></canvas>
+
+        <canvas id="bgCanvas"></canvas>
+
+        <canvas id="fgCanvas"></canvas>
+
 
         <div id="start-screen" class="overlay">
-            <div style="font-size: 6rem; margin-bottom: 20px; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.1));">🔮</div>
-            <h1 style="color: var(--primary); margin-bottom: 30px;">BUBBLE ZENITH</h1>
-            <button class="btn" onclick="startGame()">GIOCA ORA ✨</button>
+
+            <div style="font-size: 6rem; margin-bottom: 30px;">🥷</div>
+
+            <button class="btn" onclick="startGame()">TAGLIA ✨</button>
+
         </div>
+
 
         <div id="game-over" class="overlay hidden">
-            <h1 style="color: var(--primary); font-size: 3rem; margin:0;">BOOM! 💀</h1>
-            <div id="final-score" style="font-size: 2.5rem; margin: 20px 0; color: var(--secondary);">0</div>
+
+            <h1 style="color:#ff5c7c; font-size: 3.5rem; margin:0;">GAME OVER! 💀</h1>
+
+            <div id="final-score" style="font-size: 2.5rem; margin: 20px 0 30px; color: #8e7dbe;">0</div>
+
             <button class="btn" onclick="location.reload()">RIPROVA</button>
+
         </div>
+
     </div>
 
-<script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const scoreVal = document.getElementById('score-val');
-    const flash = document.getElementById('flash');
-    
-    let width, height, bubbleRadius, gridCols = 8, gridRows = 14;
-    let score = 0, gameActive = false;
-    
-    const colors = [
-        { h: 350, s: 100, l: 65, id: 'pink' },
-        { h: 200, s: 95, l: 60, id: 'blue' },
-        { h: 145, s: 85, l: 55, id: 'green' },
-        { h: 45, s: 100, l: 60, id: 'yellow' },
-        { h: 280, s: 85, l: 70, id: 'purple' }
-    ];
 
-    let grid = [];
-    let projectile = null;
-    let nextColorIdx = Math.floor(Math.random()*colors.length);
-    let particles = [];
-    let isDragging = false;
-    let dragPoint = { x: 0, y: 0 };
+    <script>
 
-    function init() {
-        width = canvas.parentElement.offsetWidth;
-        height = canvas.parentElement.offsetHeight;
-        canvas.width = width; canvas.height = height;
-        bubbleRadius = width / (gridCols + 1) / 2;
-        
-        // Genera griglia iniziale esagonale
-        for (let r = 0; r < gridRows; r++) {
-            grid[r] = [];
-            for (let c = 0; c < gridCols; c++) {
-                grid[r][c] = (r < 6) ? { active: true, colorIdx: Math.floor(Math.random()*colors.length) } : { active: false };
+        const bgCanvas = document.getElementById('bgCanvas'), bgCtx = bgCanvas.getContext('2d');
+
+        const fgCanvas = document.getElementById('fgCanvas'), fgCtx = fgCanvas.getContext('2d');
+
+        const container = document.getElementById('game-container'), flash = document.getElementById('flash');
+
+        [bgCanvas, fgCanvas].forEach(c => { c.width = 800; c.height = 600; });
+
+
+        let score = 0, lives = 3, gameActive = false;
+
+        let fruits = [], particles = [], halves = [], splashes = [], slashPoints = [];
+
+        const gravity = 0.3;
+
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+
+        function playSliceSound() {
+
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+
+            const now = audioCtx.currentTime;
+
+            const osc = audioCtx.createOscillator();
+
+            const g = audioCtx.createGain();
+
+            osc.type = 'triangle';
+
+            osc.frequency.setValueAtTime(1200, now);
+
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+
+            g.gain.setValueAtTime(0.3, now);
+
+            g.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+            osc.connect(g); g.connect(audioCtx.destination);
+
+            osc.start(); osc.stop(now + 0.15);
+
+        }
+
+
+        function playBombSound() {
+
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+
+            const now = audioCtx.currentTime;
+
+            const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+
+            osc.type = 'sine';
+
+            osc.frequency.setValueAtTime(150, now);
+
+            osc.frequency.linearRampToValueAtTime(40, now + 0.4);
+
+            g.gain.setValueAtTime(0.5, now);
+
+            g.gain.linearRampToValueAtTime(0, now + 0.4);
+
+            osc.connect(g); g.connect(audioCtx.destination);
+
+            osc.start(); osc.stop(now + 0.4);
+
+        }
+
+
+        const FRUITS_DATA = [
+
+            { e: '🍉', c: '#4caf50' }, { e: '🍎', c: '#f44336' }, { e: '🍊', c: '#ff9800' }, 
+
+            { e: '🍍', c: '#ffeb3b' }, { e: '🍓', c: '#e91e63' }, { e: '🍇', c: '#9c27b0' }
+
+        ];
+
+
+        class Fruit {
+
+            constructor(isBomb = false) {
+
+                this.isBomb = isBomb;
+
+                let f = FRUITS_DATA[Math.floor(Math.random()*FRUITS_DATA.length)];
+
+                this.e = isBomb ? '💣' : f.e;
+
+                this.c = isBomb ? '#333' : f.c;
+
+                this.x = Math.random() * 600 + 100;
+
+                this.y = 650;
+
+                this.vx = (this.x < 400 ? 1 : -1) * (Math.random() * 2 + 2);
+
+                this.vy = -(Math.random() * 3 + 14);
+
+                this.rot = 0; this.vr = (Math.random()-0.5)*0.1;
+
+                this.sliced = false;
+
             }
+
+            update() {
+
+                this.x += this.vx; this.y += this.vy; this.vy += gravity; this.rot += this.vr;
+
+                return this.y < 700;
+
+            }
+
+            draw(ctx) {
+
+                if(this.sliced) return;
+
+                ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rot);
+
+                ctx.font = "65px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+
+                ctx.fillText(this.e, 0, 0); ctx.restore();
+
+            }
+
         }
-        spawnProjectile();
-    }
 
-    function spawnProjectile() {
-        projectile = {
-            x: width / 2, y: height - 80,
-            colorIdx: nextColorIdx,
-            vx: 0, vy: 0, moving: false, radius: bubbleRadius
-        };
-        nextColorIdx = Math.floor(Math.random()*colors.length);
-    }
 
-    // --- LOGICA DI COLLISIONE E SCOPPIO ---
-    
-    function findMatches(r, c, targetColor, matches = new Set()) {
-        const key = `${r},${c}`;
-        if (matches.has(key)) return matches;
-        
-        if (grid[r] && grid[r][c] && grid[r][c].active && grid[r][c].colorIdx === targetColor) {
-            matches.add(key);
-            getNeighbors(r, c).forEach(n => findMatches(n.r, n.c, targetColor, matches));
+        class Half {
+
+            constructor(x, y, vx, vy, rot, vr, e, side) {
+
+                this.x = x; this.y = y; this.vx = vx + (side === 'l' ? -2 : 2);
+
+                this.vy = vy; this.rot = rot; this.vr = vr + (side === 'l' ? -0.1 : 0.1);
+
+                this.e = e; this.side = side; this.alpha = 1;
+
+            }
+
+            update() {
+
+                this.x += this.vx; this.y += this.vy; this.vy += gravity;
+
+                this.rot += this.vr; this.alpha -= 0.015; return this.alpha > 0;
+
+            }
+
+            draw(ctx) {
+
+                ctx.save(); ctx.globalAlpha = this.alpha;
+
+                ctx.translate(this.x, this.y); ctx.rotate(this.rot);
+
+                ctx.font = "65px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+
+                ctx.beginPath();
+
+                if(this.side === 'l') ctx.rect(-100, -100, 100, 200);
+
+                else ctx.rect(0, -100, 100, 200);
+
+                ctx.clip();
+
+                ctx.fillText(this.e, 0, 0); ctx.restore();
+
+            }
+
         }
-        return matches;
-    }
 
-    function getNeighbors(r, c) {
-        const res = [];
-        const isOdd = r % 2 !== 0;
-        const directions = isOdd 
-            ? [[0,-1],[0,1],[-1,0],[-1,1],[1,0],[1,1]] 
-            : [[0,-1],[0,1],[-1,-1],[-1,0],[1,-1],[1,0]];
-        
-        directions.forEach(([dr, dc]) => {
-            const nr = r + dr, nc = c + dc;
-            if (nr >= 0 && nr < gridRows && nc >= 0 && nc < gridCols) res.push({r: nr, c: nc});
-        });
-        return res;
-    }
 
-    function dropUnconnected() {
-        const connected = new Set();
-        const check = (r, c) => {
-            const key = `${r},${c}`;
-            if (connected.has(key) || !grid[r] || !grid[r][c] || !grid[r][c].active) return;
-            connected.add(key);
-            getNeighbors(r, c).forEach(n => check(n.r, n.c));
-        };
+        function createSplash(x, y, color) {
 
-        for (let c = 0; c < gridCols; c++) check(0, c);
+            for(let i=0; i<5; i++) {
 
-        for (let r = 0; r < gridRows; r++) {
-            for (let c = 0; c < gridCols; c++) {
-                if (grid[r][c].active && !connected.has(`${r},${c}`)) {
-                    createExplosion(getPos(r,c).x, getPos(r,c).y, grid[r][c].colorIdx, 5);
-                    grid[r][c].active = false;
-                    score += 20;
+                splashes.push({
+
+                    x: x + (Math.random()-0.5)*60, y: y + (Math.random()-0.5)*60,
+
+                    r: Math.random()*30 + 15, c: color, a: 0.5, vy: Math.random()*0.4
+
+                });
+
+            }
+
+        }
+
+
+        function triggerFlash(color = "white") {
+
+            flash.style.background = color;
+
+            flash.style.opacity = "0.5";
+
+            setTimeout(() => flash.style.opacity = "0", 150);
+
+        }
+
+
+        function startGame() {
+
+            document.getElementById('start-screen').classList.add('hidden');
+
+            gameActive = true; loop();
+
+            setInterval(() => { if(gameActive) fruits.push(new Fruit(Math.random() < 0.15)); }, 1000);
+
+        }
+
+
+        function handleSlice(e) {
+
+            if(!gameActive) return;
+
+            const rect = fgCanvas.getBoundingClientRect();
+
+            const x = e.clientX - rect.left, y = e.clientY - rect.top;
+
+            slashPoints.push({x, y, t: Date.now()});
+
+            if(slashPoints.length > 8) slashPoints.shift();
+
+
+            fruits.forEach(f => {
+
+                if(!f.sliced && Math.hypot(f.x - x, f.y - y) < 45) {
+
+                    f.sliced = true;
+
+                    if(f.isBomb) {
+
+                        lives--; 
+
+                        playBombSound();
+
+                        triggerFlash("#ff5c7c");
+
+                        container.style.transform = "scale(1.05)";
+
+                        setTimeout(() => container.style.transform = "scale(1)", 100);
+
+                        if(lives <= 0) gameOver();
+
+                    } else {
+
+                        score += 10;
+
+                        playSliceSound();
+
+                        triggerFlash("white");
+
+                        createSplash(f.x, f.y, f.c);
+
+                        halves.push(new Half(f.x, f.y, f.vx, f.vy, f.rot, f.vr, f.e, 'l'));
+
+                        halves.push(new Half(f.x, f.y, f.vx, f.vy, f.rot, f.vr, f.e, 'r'));
+
+                        for(let i=0; i<12; i++) particles.push({x:f.x, y:f.y, vx:(Math.random()-0.5)*15, vy:(Math.random()-0.5)*15, c:f.c, a:1, r:Math.random()*4+2});
+
+                    }
+
+                    document.getElementById('score-val').innerText = score;
+
+                    document.getElementById('lives-box').innerText = '❤️'.repeat(lives > 0 ? lives : 0);
+
                 }
-            }
-        }
-    }
 
-    // --- INPUT ---
-
-    canvas.addEventListener('pointerdown', e => {
-        if (!gameActive || projectile.moving) return;
-        isDragging = true;
-        updateDrag(e);
-    });
-
-    canvas.addEventListener('pointermove', e => { if(isDragging) updateDrag(e); });
-
-    canvas.addEventListener('pointerup', () => {
-        if (!isDragging) return;
-        isDragging = false;
-        const dx = (width/2) - dragPoint.x;
-        const dy = (height-80) - dragPoint.y;
-        const angle = Math.atan2(dy, dx);
-        const dist = Math.min(Math.hypot(dx, dy), 150);
-        
-        if (dist > 20) {
-            projectile.vx = Math.cos(angle) * 15;
-            projectile.vy = Math.sin(angle) * 15;
-            projectile.moving = true;
-        }
-    });
-
-    function updateDrag(e) {
-        const rect = canvas.getBoundingClientRect();
-        dragPoint = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    }
-
-    // --- GRAFICA E LOOP ---
-
-    function getPos(r, c) {
-        let x = c * bubbleRadius * 2 + bubbleRadius + (width - (gridCols * bubbleRadius * 2)) / 2;
-        if (r % 2 !== 0) x += bubbleRadius;
-        const y = r * bubbleRadius * 2 * 0.87 + bubbleRadius + 100;
-        return { x, y };
-    }
-
-    function drawBubble(x, y, colorIdx, r = bubbleRadius) {
-        const c = colors[colorIdx];
-        ctx.save();
-        ctx.translate(x, y);
-
-        // Ombra sferica
-        const grad = ctx.createRadialGradient(-r*0.3, -r*0.3, r*0.1, 0, 0, r);
-        grad.addColorStop(0, `hsl(${c.h}, ${c.s}%, 90%)`);
-        grad.addColorStop(0.7, `hsl(${c.h}, ${c.s}%, ${c.l}%)`);
-        grad.addColorStop(1, `hsl(${c.h}, ${c.s}%, ${c.l-20}%)`);
-
-        ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI*2);
-        ctx.fillStyle = grad;
-        ctx.fill();
-
-        // Riflesso "Dopamina"
-        ctx.beginPath();
-        ctx.ellipse(-r*0.35, -r*0.4, r*0.4, r*0.2, -Math.PI/4, 0, Math.PI*2);
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
-        ctx.fill();
-        ctx.restore();
-    }
-
-    function createExplosion(x, y, colorIdx, count = 10) {
-        const c = colors[colorIdx];
-        for(let i=0; i<count; i++) {
-            particles.push({
-                x, y, a: 1, 
-                vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12,
-                r: Math.random()*5+2,
-                color: `hsl(${c.h}, ${c.s}%, ${c.l}%)`
             });
-        }
-    }
 
-    function gameLoop() {
-        if(!gameActive) return;
-        ctx.clearRect(0,0,width,height);
-        
-        // Disegna Griglia
-        for(let r=0; r<gridRows; r++) {
-            for(let c=0; c<gridCols; c++) {
-                if(grid[r][c].active) {
-                    const p = getPos(r,c);
-                    drawBubble(p.x, p.y, grid[r][c].colorIdx);
-                }
+        }
+
+
+        function gameOver() {
+
+            gameActive = false;
+
+            document.getElementById('game-over').classList.remove('hidden');
+
+            document.getElementById('final-score').innerText = score + " PUNTI";
+
+        }
+
+
+        function loop() {
+
+            if(!gameActive && halves.length === 0) return;
+
+            fgCtx.clearRect(0,0,800,600);
+
+            
+
+            bgCtx.clearRect(0,0,800,600);
+
+            splashes = splashes.filter(s => {
+
+                s.y += s.vy; s.a -= 0.002;
+
+                bgCtx.globalAlpha = s.a; bgCtx.fillStyle = s.c;
+
+                bgCtx.beginPath(); bgCtx.arc(s.x, s.y, s.r, 0, Math.PI*2); bgCtx.fill();
+
+                return s.a > 0.1;
+
+            });
+
+
+            if(slashPoints.length > 1) {
+
+                fgCtx.strokeStyle = "rgba(255,255,255,0.8)"; fgCtx.lineWidth = 5; fgCtx.lineCap = "round";
+
+                fgCtx.beginPath(); fgCtx.moveTo(slashPoints[0].x, slashPoints[0].y);
+
+                slashPoints.forEach(p => fgCtx.lineTo(p.x, p.y)); fgCtx.stroke();
+
             }
-        }
 
-        // Traiettoria (Invertita)
-        if (isDragging) {
-            const dx = (width/2) - dragPoint.x;
-            const dy = (height-80) - dragPoint.y;
-            const angle = Math.atan2(dy, dx);
-            ctx.setLineDash([8, 12]);
-            ctx.strokeStyle = "rgba(255, 92, 124, 0.3)";
-            ctx.lineWidth = 6;
-            ctx.beginPath();
-            ctx.moveTo(width/2, height-80);
-            ctx.lineTo(width/2 + Math.cos(angle) * 150, height-80 + Math.sin(angle) * 150);
-            ctx.stroke();
-            ctx.setLineDash([]);
-        }
 
-        // Proiettile
-        if (projectile) {
-            if (projectile.moving) {
-                projectile.x += projectile.vx;
-                projectile.y += projectile.vy;
-                if(projectile.x < bubbleRadius || projectile.x > width - bubbleRadius) projectile.vx *= -1;
-                
-                // Collision check
-                let hit = false;
-                if (projectile.y < 100) hit = true;
-                else {
-                    for(let r=0; r<gridRows; r++) {
-                        for(let c=0; c<gridCols; c++) {
-                            if(grid[r][c].active) {
-                                const p = getPos(r,c);
-                                if(Math.hypot(projectile.x - p.x, projectile.y - p.y) < bubbleRadius*1.7) hit = true;
-                            }
-                        }
-                    }
+            fruits = fruits.filter(f => {
+
+                let a = f.update(); f.draw(fgCtx);
+
+                if(!a && !f.sliced && !f.isBomb) { 
+
+                    lives--; 
+
+                    document.getElementById('lives-box').innerText = '❤️'.repeat(lives > 0 ? lives : 0); 
+
+                    if(lives <= 0) gameOver(); 
+
                 }
 
-                if (hit) {
-                    let best = { r:0, c:0, d:9999 };
-                    for(let r=0; r<gridRows; r++) {
-                        for(let c=0; c<gridCols; c++) {
-                            if(!grid[r][c].active) {
-                                const p = getPos(r,c);
-                                const d = Math.hypot(projectile.x - p.x, projectile.y - p.y);
-                                if(d < best.d) best = {r, c, d};
-                            }
-                        }
-                    }
-                    grid[best.r][best.c] = { active: true, colorIdx: projectile.colorIdx };
-                    
-                    const matches = findMatches(best.r, best.c, projectile.colorIdx);
-                    if (matches.size >= 3) {
-                        matches.forEach(m => {
-                            const [mr, mc] = m.split(',').map(Number);
-                            createExplosion(getPos(mr, mc).x, getPos(mr, mc).y, grid[mr][mc].colorIdx);
-                            grid[mr][mc].active = false;
-                            score += 50;
-                        });
-                        dropUnconnected();
-                        flash.style.opacity = "0.4";
-                        setTimeout(()=>flash.style.opacity="0", 150);
-                    }
-                    
-                    scoreVal.innerText = score;
-                    scoreVal.parentElement.style.transform = "scale(1.1)";
-                    setTimeout(()=>scoreVal.parentElement.style.transform="scale(1)", 100);
+                return a;
 
-                    if (best.r >= gridRows - 1) gameOver();
-                    else spawnProjectile();
-                }
-            }
-            drawBubble(projectile.x, projectile.y, projectile.colorIdx);
+            });
+
+
+            halves = halves.filter(h => {
+
+                let a = h.update(); h.draw(fgCtx);
+
+                return a;
+
+            });
+
+
+            particles = particles.filter(p => {
+
+                p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.a -= 0.03;
+
+                fgCtx.globalAlpha = p.a; fgCtx.fillStyle = p.c;
+
+                fgCtx.beginPath(); fgCtx.arc(p.x, p.y, p.r, 0, 7); fgCtx.fill();
+
+                return p.a > 0;
+
+            });
+
+
+            fgCtx.globalAlpha = 1;
+
+            requestAnimationFrame(loop);
+
         }
 
-        // Particelle
-        particles = particles.filter(p => {
-            p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.a -= 0.02;
-            ctx.globalAlpha = p.a;
-            ctx.fillStyle = p.color;
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
-            return p.a > 0;
-        });
-        ctx.globalAlpha = 1;
 
-        requestAnimationFrame(gameLoop);
-    }
+        fgCanvas.addEventListener('mousemove', handleSlice);
 
-    function startGame() {
-        document.getElementById('start-screen').classList.add('hidden');
-        gameActive = true;
-        init();
-        gameLoop();
-    }
+        setInterval(() => { slashPoints = slashPoints.filter(p => Date.now() - p.t < 100); }, 30);
 
-    function gameOver() {
-        gameActive = false;
-        document.getElementById('game-over').classList.remove('hidden');
-        document.getElementById('final-score').innerText = score + " PUNTI";
-    }
-</script>
+    </script>
+
 </body>
-</html>
+
+</html> 
