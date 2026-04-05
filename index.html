@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GAEMOJI - Luca Carbonara</title>
+    <title>GAEMOJI - Zenith Arcade</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Sigmar&display=swap');
         
@@ -12,124 +12,111 @@
             --primary: #ff5c7c;
             --secondary: #8e7dbe;
             --accent: #ffcfcf;
+            --white: #ffffff;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent; 
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="%23ff5c7c" opacity="0.5"/></svg>'), auto; 
+        }
         
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: var(--bg);
             color: #444; font-family: 'Fredoka', sans-serif;
-            overflow: hidden; display: flex; justify-content: center; align-items: center;
+            overflow-x: hidden;
         }
 
+        /* Sfondo Animato */
+        body::before {
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, var(--accent) 1px, transparent 1px);
+            background-size: 30px 30px; opacity: 0.3; z-index: -1;
+            animation: bgScroll 20s linear infinite;
+        }
+        @keyframes bgScroll { from { background-position: 0 0; } to { background-position: 30px 30px; } }
+
+        /* Brand Logo - SEMPRE VISIBILE */
         #brand-logo {
             position: fixed; top: 20px; left: 20px;
-            font-family: 'Sigmar', cursive; font-size: 2.5rem; color: white;
-            text-shadow: 4px 4px 0px var(--primary);
-            transform: rotate(-5deg); z-index: 9999;
-            cursor: pointer; transition: 0.2s;
+            font-family: 'Sigmar', cursive; font-size: 2.5rem; color: var(--white);
+            text-shadow: 4px 4px 0px var(--primary), 6px 6px 0px rgba(0,0,0,0.1);
+            transform: rotate(-5deg); z-index: 1000000; /* Valore altissimo */
+            cursor: pointer; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        #brand-logo:hover { transform: rotate(-2deg) scale(1.1); }
+        #brand-logo:hover { transform: rotate(0deg) scale(1.1); }
 
+        /* Player Box */
         #name-box {
-            position: fixed; bottom: 20px; left: 20px;
-            background: white; padding: 8px 12px; border-radius: 20px;
-            border: 3px solid var(--accent); display: flex; align-items: center;
-            gap: 8px; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            position: fixed; bottom: 25px; left: 20px;
+            background: var(--white); padding: 12px 20px; border-radius: 50px;
+            border: 4px solid var(--primary); display: flex; align-items: center;
+            gap: 12px; z-index: 999; 
+            box-shadow: 0 10px 30px rgba(255, 92, 124, 0.3);
         }
-        #name-box label { font-size: 0.7rem; font-weight: bold; color: var(--primary); }
         #name-box input {
-            border: none; background: #fff5f5; padding: 4px 8px;
-            border-radius: 8px; font-family: 'Fredoka'; font-weight: bold;
-            color: var(--secondary); width: 100px; outline: none; font-size: 0.8rem;
+            border: none; background: transparent; font-family: 'Fredoka'; font-weight: 700;
+            color: var(--secondary); width: 140px; outline: none; font-size: 1rem;
+            text-transform: uppercase;
         }
 
         .page {
-            position: absolute; width: 100%; height: 100%;
-            display: flex; flex-direction: column; justify-content: flex-start; align-items: center;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            padding: 40px 20px;
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 40px 20px; transition: 0.5s ease;
         }
-        .hidden { opacity: 0 !important; pointer-events: none !important; transform: translateY(20px); }
+        .hidden { display: none !important; }
 
-        header { text-align: center; margin-bottom: 20px; margin-top: 20px; }
-        h1 { font-size: 3rem; color: var(--primary); margin: 0; text-transform: uppercase; letter-spacing: -2px; }
-        .welcome { color: var(--secondary); font-size: 1.2rem; margin-top: 2px; }
+        header { text-align: center; margin-bottom: 40px; margin-top: 80px; animation: bounceIn 0.8s both; }
+        h1 { font-size: clamp(3rem, 10vw, 5rem); color: var(--primary); margin: 0; line-height: 1; letter-spacing: -3px; }
+        .welcome { color: var(--secondary); font-size: 1.5rem; margin-top: 10px; }
 
-        /* Griglia Ottimizzata */
+        /* Griglia Giochi */
         .menu-container { 
             display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
-            gap: 12px; 
-            max-width: 1200px; 
-            width: 100%; 
-            padding: 20px;
-            overflow-y: auto; 
-            max-height: 75vh;
-            scrollbar-width: none; /* Firefox */
-            padding-bottom: 100px;
-        }
-        .menu-container::-webkit-scrollbar { display: none; } /* Chrome/Safari */
-
-        /* Effetto dissolvenza per suggerire lo scroll */
-        .page::after {
-            content: '';
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 80px;
-            background: linear-gradient(transparent, var(--bg));
-            pointer-events: none;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+            gap: 20px; max-width: 1300px; width: 100%; 
+            padding: 20px 20px 120px 20px;
         }
 
         .menu-card {
-            background: white; border-radius: 25px; padding: 15px;
-            text-align: center; border: 4px solid white;
-            cursor: pointer; transition: all 0.3s;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-            display: flex; flex-direction: column; align-items: center;
-            justify-content: center;
+            background: var(--white); border-radius: 30px; padding: 20px;
+            text-align: center; border: 5px solid var(--white);
+            cursor: pointer; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            animation: cardPop 0.5s backwards;
         }
-        .menu-card:hover { transform: translateY(-5px); border-color: var(--accent); }
-
-        .card-emoji { font-size: 2.8rem; margin-bottom: 2px; }
-        .badge { color: #aaa; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; }
-        .menu-card h3 { margin: 2px 0 8px 0; color: var(--primary); font-size: 0.9rem; white-space: nowrap; }
-
-        /* Bordi Colorati */
-        .border-purple { border-color: #e0c3fc; }
-        .border-yellow { border-color: #ffeb3b; }
-        .border-menta { border-color: #c3fcf2; }
-        .border-pink { border-color: #ffcfcf; }
-        .border-green { border-color: #d1f7c4; }
-        .border-orange { border-color: #ffd8a8; }
-        .border-blue { border-color: #7cd6ff; }
-
-        .play-btn {
-            background: var(--primary); color: white; padding: 5px 15px;
-            border-radius: 15px; font-weight: bold; font-size: 0.7rem;
+        .menu-card:hover { transform: translateY(-10px) scale(1.05); }
+        .card-emoji { font-size: 3.5rem; margin-bottom: 10px; display: block; }
+        .badge { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; opacity: 0.6; }
+        .menu-card h3 { margin: 5px 0 15px 0; color: var(--primary); font-size: 1rem; }
+        
+        .play-btn { 
+            background: var(--primary); color: var(--white); padding: 8px 0; width: 100%;
+            border-radius: 20px; font-weight: 700; font-size: 0.8rem;
         }
 
-        #game-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 4000; }
-        iframe { width: 100%; height: 100%; border: none; background: transparent; }
+        /* Border Colors */
+        .b-1 { border-color: #ffcfcf; } .b-2 { border-color: #c3fcf2; } 
+        .b-3 { border-color: #e0c3fc; } .b-4 { border-color: #ffeb3b; }
+        .b-5 { border-color: #7cd6ff; } .b-6 { border-color: #ffd8a8; }
+        .b-7 { border-color: #d1f7c4; }
 
-        #mobile-ctrl {
-            position: fixed; bottom: 40px; left: 0; width: 100%;
-            display: flex; justify-content: space-between; padding: 0 40px;
-            z-index: 5000; pointer-events: none;
+        /* Game Frame View */
+        #game-view { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #fff; z-index: 5000; 
         }
-        .joy-btn {
-            width: 70px; height: 70px; background: rgba(255,255,255,0.6);
-            backdrop-filter: blur(8px); border: 3px solid white; border-radius: 50%;
-            color: var(--secondary); font-size: 1.2rem; display: flex; align-items: center; 
-            justify-content: center; pointer-events: auto; font-weight: bold;
-        }
-        .dpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        iframe { width: 100%; height: 100%; border: none; }
 
-        footer { margin-top: auto; padding: 20px; color: var(--accent); font-weight: bold; font-size: 0.6rem; letter-spacing: 3px; z-index: 5; }
+        @keyframes cardPop { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+        @keyframes bounceIn { 0% { opacity: 0; transform: translateY(-50px); } 60% { transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
 
         @media (max-width: 600px) {
-            .menu-container { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-            h1 { font-size: 2.2rem; }
-            .card-emoji { font-size: 2.2rem; }
+            .menu-container { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            h1 { font-size: 3.2rem; }
+            #brand-logo { font-size: 1.8rem; top: 15px; left: 15px; }
         }
     </style>
 </head>
@@ -139,124 +126,91 @@
 
     <div id="name-box">
         <label>PLAYER:</label>
-        <input type="text" id="user-name-input" placeholder="..." maxlength="12">
+        <input type="text" id="user-name-input" placeholder="CHI SEI?" maxlength="12">
     </div>
 
     <div id="main-menu" class="page">
         <header>
             <h1>GAEMOJI</h1>
-            <div class="welcome">Hey, <strong id="display-name">L E G E N D S</strong></div>
+            <div class="welcome">HELLO, <strong id="display-name">LEGEND</strong>! 🕹️</div>
         </header>
 
-        <div class="menu-container">
-            <div class="menu-card border-pink" onclick="launchGame('fluid-sort')">
-                <div class="card-emoji">🧪</div><div class="badge">Puzzle</div><h3>FLUID SORT</h3><div class="play-btn">GIOCA</div>
+        <div class="menu-container" id="grid">
+            <div class="menu-card b-1" onclick="launchGame('fluid-sort')" style="animation-delay: 0.1s">
+                <span class="card-emoji">🧪</span><div class="badge">Puzzle</div><h3>FLUID SORT</h3><div class="play-btn">GIOCA</div>
             </div>
-            <div class="menu-card border-blue" onclick="launchGame('2048-zenith')">
-                <div class="card-emoji">🔢</div><div class="badge">Logica</div><h3>2048 ZENITH</h3><div class="play-btn">GIOCA</div>
+            <div class="menu-card b-2" onclick="launchGame('2048-zenith')" style="animation-delay: 0.15s">
+                <span class="card-emoji">🔢</span><div class="badge">Logica</div><h3>2048</h3><div class="play-btn">GIOCA</div>
             </div>
-            <div class="menu-card border-purple" onclick="launchGame('tower-stack')">
-                <div class="card-emoji">🏗️</div><div class="badge">3D</div><h3>TOWER STACK</h3><div class="play-btn">GIOCA</div>
+            <div class="menu-card b-3" onclick="launchGame('tower-stack')" style="animation-delay: 0.2s">
+                <span class="card-emoji">🏗️</span><div class="badge">Skill</div><h3>STACK 3D</h3><div class="play-btn">GIOCA</div>
             </div>
-            <div class="menu-card border-purple" onclick="launchGame('wave-dash')">
-                <div class="card-emoji">🌊</div><div class="badge">Ritmo</div><h3>WAVE DASH</h3><div class="play-btn">GIOCA</div>
+            <div class="menu-card b-4" onclick="launchGame('bubble-shooter')" style="animation-delay: 0.25s">
+                <span class="card-emoji">🫧</span><div class="badge">Arcade</div><h3>BUBBLES</h3><div class="play-btn">GIOCA</div>
             </div>
-            <div class="menu-card border-orange" onclick="launchGame('bubble-shooter')">
-                <div class="card-emoji">🫧</div><div class="badge">Arcade</div><h3>BUBBLE SHOOTER</h3><div class="play-btn">GIOCA</div>
+            <div class="menu-card b-5" onclick="launchGame('ninja')" style="animation-delay: 0.3s">
+                <span class="card-emoji">🥷</span><div class="badge">Action</div><h3>NINJA SLICE</h3><div class="play-btn">GIOCA</div>
             </div>
-
-            <div class="menu-card border-yellow" onclick="launchGame('ninja')">
-                <div class="card-emoji">🥷</div><div class="badge">Azione</div><h3>NINJA SLICE</h3><div class="play-btn">GIOCA</div>
+            <div class="menu-card b-6" onclick="launchGame('snake')" style="animation-delay: 0.35s">
+                <span class="card-emoji">🐍</span><div class="badge">Classic</div><h3>SNAKE</h3><div class="play-btn">GIOCA</div>
             </div>
-            <div class="menu-card border-menta" onclick="launchGame('memory')">
-                <div class="card-emoji">🧠</div><div class="badge">Mente</div><h3>MEMORY</h3><div class="play-btn">GIOCA</div>
+            <div class="menu-card b-7" onclick="launchGame('tetris')" style="animation-delay: 0.4s">
+                <span class="card-emoji">🧱</span><div class="badge">Retro</div><h3>TETRIS</h3><div class="play-btn">GIOCA</div>
             </div>
-            <div class="menu-card border-pink" onclick="launchGame('suiko')">
-                <div class="card-emoji">🍉</div><div class="badge">Popolare</div><h3>SUIKO</h3><div class="play-btn">GIOCA</div>
+            <div class="menu-card b-1" onclick="launchGame('chess')" style="animation-delay: 0.45s">
+                <span class="card-emoji">♟️</span><div class="badge">Strategy</div><h3>CHESS</h3><div class="play-btn">GIOCA</div>
             </div>
-            <div class="menu-card border-green" onclick="launchGame('snake')">
-                <div class="card-emoji">🐍</div><div class="badge">Classic</div><h3>SNAKE</h3><div class="play-btn">GIOCA</div>
+            <div class="menu-card b-3" onclick="launchGame('memory')" style="animation-delay: 0.5s">
+                <span class="card-emoji">🧠</span><div class="badge">Brain</div><h3>MEMORY</h3><div class="play-btn">GIOCA</div>
             </div>
-            <div class="menu-card border-purple" onclick="launchGame('tetris')">
-                <div class="card-emoji">🧱</div><div class="badge">Puzzle</div><h3>TETRIS</h3><div class="play-btn">GIOCA</div>
+            <div class="menu-card b-4" onclick="launchGame('racers')" style="animation-delay: 0.55s">
+                <span class="card-emoji">🏎️</span><div class="badge">Speed</div><h3>RACERS</h3><div class="play-btn">GIOCA</div>
             </div>
-
-            <div class="menu-card border-yellow" onclick="launchGame('geometry')">
-                <div class="card-emoji">📐</div><div class="badge">Skill</div><h3>GEOMETRY</h3><div class="play-btn">GIOCA</div>
+            <div class="menu-card b-6" onclick="launchGame('talpa')" style="animation-delay: 0.6s">
+                <span class="card-emoji">🔨</span><div class="badge">Clicker</div><h3>TALPA</h3><div class="play-btn">GIOCA</div>
             </div>
-            <div class="menu-card border-blue" onclick="launchGame('chess')">
-                <div class="card-emoji">♟️</div><div class="badge">Board</div><h3>CHESS</h3><div class="play-btn">GIOCA</div>
-            </div>
-            <div class="menu-card border-green" onclick="launchGame('talpa')">
-                <div class="card-emoji">🔨</div><div class="badge">Clicker</div><h3>TALPA</h3><div class="play-btn">GIOCA</div>
-            </div>
-            <div class="menu-card border-orange" onclick="launchGame('racers')">
-                <div class="card-emoji">🏎️</div><div class="badge">Racing</div><h3>RACERS</h3><div class="play-btn">GIOCA</div>
+            <div class="menu-card b-7" onclick="launchGame('wave-dash')" style="animation-delay: 0.65s">
+                <span class="card-emoji">🌊</span><div class="badge">Rhythm</div><h3>WAVE DASH</h3><div class="play-btn">GIOCA</div>
             </div>
         </div>
-
-        <footer>ZENITH ARCADE SYSTEM</footer>
     </div>
 
     <div id="game-view" class="hidden">
-        <iframe id="game-frame" src=""></iframe>
-        <div id="mobile-ctrl" class="hidden">
-            <div class="dpad" id="dpad-group">
-                <div></div><div class="joy-btn" ontouchstart="sendKey(38,'ArrowUp')">▲</div><div></div>
-                <div class="joy-btn" ontouchstart="sendKey(37,'ArrowLeft')">◀</div><div></div><div class="joy-btn" ontouchstart="sendKey(39,'ArrowRight')">▶</div>
-                <div></div><div class="joy-btn" ontouchstart="sendKey(40,'ArrowDown')">▼</div><div></div>
-            </div>
-            <div class="joy-btn" id="action-btn" style="width:110px; border-radius:20px; background: var(--primary); color: white;" ontouchstart="sendKey(32,' ')">ACTION</div>
-        </div>
+        <iframe id="game-frame"></iframe>
     </div>
 
     <script>
         const nameInput = document.getElementById('user-name-input');
         const displayName = document.getElementById('display-name');
-        const gameFrame = document.getElementById('game-frame');
         const gameView = document.getElementById('game-view');
-        const mobileCtrl = document.getElementById('mobile-ctrl');
+        const gameFrame = document.getElementById('game-frame');
+        const mainMenu = document.getElementById('main-menu');
 
-        nameInput.value = localStorage.getItem('zenith_name') || "";
-        displayName.innerText = nameInput.value;
-        
+        // Caricamento Nome
+        const saved = localStorage.getItem('zenith_name');
+        if (saved) {
+            nameInput.value = saved;
+            displayName.innerText = saved.toUpperCase();
+        }
+
         nameInput.oninput = () => {
-            localStorage.setItem('zenith_name', nameInput.value);
-            displayName.innerText = nameInput.value;
+            const val = nameInput.value;
+            localStorage.setItem('zenith_name', val);
+            displayName.innerText = val.trim() !== "" ? val.toUpperCase() : "LEGEND";
         };
 
         function launchGame(id) {
             gameFrame.src = `games/${id}/index.html`;
-            document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('name-box').classList.add('hidden');
             gameView.classList.remove('hidden');
-
-            if(window.innerWidth < 1024) {
-                const useDpad = ['snake', 'tetris', 'racers', 'chess'];
-                const useAction = ['tower-stack', 'wave-dash', 'ninja', 'memory', 'geometry', 'talpa'];
-                const touchOnly = ['2048-zenith', 'fluid-sort', 'suiko', 'bubble-shooter'];
-                
-                if (touchOnly.includes(id)) {
-                    mobileCtrl.classList.add('hidden');
-                } else {
-                    mobileCtrl.classList.remove('hidden');
-                    document.getElementById('dpad-group').style.display = useDpad.includes(id) ? 'grid' : 'none';
-                    document.getElementById('action-btn').style.display = useAction.includes(id) ? 'flex' : 'none';
-                }
-            }
+            mainMenu.classList.add('hidden'); // Nasconde il menu per pulizia
+            window.scrollTo(0, 0);
         }
 
         function goHome() {
-            gameFrame.src = "";
             gameView.classList.add('hidden');
-            mobileCtrl.classList.add('hidden');
-            document.getElementById('main-menu').classList.remove('hidden');
-            document.getElementById('name-box').classList.remove('hidden');
-        }
-
-        function sendKey(code, key) {
-            const win = gameFrame.contentWindow;
-            win.postMessage({ type: 'keydown', keyCode: code, key: key }, '*');
+            mainMenu.classList.remove('hidden');
+            gameFrame.src = "";
+            window.scrollTo(0, 0);
         }
     </script>
 </body>
